@@ -1,0 +1,21 @@
+{
+  "tokenizer": "JerroldK/H4-14b-contract-extractor-adapter",
+  "totalTimeMills": 19578.26,
+  "totalRequests": 20,
+  "failedRequests": 0,
+  "errorRate": 0.0,
+  "concurrentClients": 10,
+  "tps": 1.35,
+  "tokenThroughput": 83.56,
+  "totalTokens": 1236,
+  "tokenPerRequest": 61,
+  "averageLatency": 7395.78,
+  "averageTokenLatency": 1196.73,
+  "p50Latency": 8088.14,
+  "p90Latency": 10952.42,
+  "p99Latency": 11725.77,
+  "timeToFirstByte": 7352.65,
+  "p50TimeToFirstByte": 8086.4351,
+  "p90TimeToFirstByte": 10951.555,
+  "p99TimeToFirstByte": 11724.306
+}

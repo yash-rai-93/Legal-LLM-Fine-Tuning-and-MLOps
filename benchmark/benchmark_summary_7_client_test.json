@@ -1,0 +1,22 @@
+Loading dataset from directory: prompts
+{
+  "tokenizer": "JerroldK/H4-14b-contract-extractor-adapter",
+  "totalTimeMills": 1478675.29,
+  "totalRequests": 35,
+  "failedRequests": 4,
+  "errorRate": 11.43,
+  "concurrentClients": 7,
+  "tps": 0.04,
+  "tokenThroughput": 22.25,
+  "totalTokens": 15872,
+  "tokenPerRequest": 453,
+  "averageLatency": 161087.93,
+  "averageTokenLatency": 2202.37,
+  "p50Latency": 140176.9,
+  "p90Latency": 289792.54,
+  "p99Latency": 300236.3,
+  "timeToFirstByte": 161064.58,
+  "p50TimeToFirstByte": 140167.4927,
+  "p90TimeToFirstByte": 289777.1099,
+  "p99TimeToFirstByte": 300225.7942
+}
