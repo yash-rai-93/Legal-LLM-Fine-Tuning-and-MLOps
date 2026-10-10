@@ -1,0 +1,74 @@
+name: CD Pipeline - Deployment
+
+on:
+  pull_request:
+    branches:
+      - dev
+    types:
+      - closed
+    paths-ignore:
+      - 'README.md'
+      - 'diagram/**'
+      - 'docs/**'
+
+jobs:
+  cd-deliver-and-deploy:
+    # ONLY run if the PR was merged (ignores PRs closed without merging)
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    env:
+      # Variables
+      AWS_REGION: "us-east-1"
+      ENV: "dev"
+      IMAGE_TAG: pr-${{ github.event.pull_request.number }} #${{ github.sha }}
+      TF_VAR_IMAGE_TAG: pr-${{ github.event.pull_request.number }}
+
+      # Secrets (used more than once)
+      ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      TF_VAR_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+    steps:
+      - name: Check Image Tag 
+        run: |
+          echo "Image tag: ${IMAGE_TAG}"
+      - uses: actions/checkout@v5
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Throw error
+        run: |
+          echo "Throwing error. MLRun platform subscription is not configured.
+          exit 1
+
+      # Deploy terraform
+      - name: Setup Terraform CLI
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.2"
+      - name: Setup TF project with S3 backend (dev)
+        run: |
+          terraform -chdir=Terraform/ init \
+            -backend-config="backend/dev.hcl"
+      - name: Terraform plan
+        run: |
+          terraform -chdir=Terraform/ plan \
+            -var-file="dev.tfvars" \
+            -out="tfplan"
+      - name: Terraform apply
+        run: |
+          terraform -chdir=Terraform/ apply "tfplan"
+
+      # Upgrade images built and pushed to ECR from Dev-CI to Dev
+      - name: Copy images from dev-ci to dev
+        run: |
+          chmod +x ./images/promote_ecr.sh
+          ./images/promote_ecr.sh
+      - name: Build MLRun functions
+        env: 
+          FEATURE_BRANCH: ${{ github.head_ref }}
+          MLRUN_AWS_ROLE_ARN: ${{ secrets.MLRUN_AWS_ROLE_ARN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python ./setup/build_functions.py

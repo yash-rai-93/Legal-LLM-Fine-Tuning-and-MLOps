@@ -1,0 +1,170 @@
+name: CI Pipeline
+
+on:
+  # Branch protection rules prevent push to protected branches (dev, main, staging)
+  pull_request:
+    branches:
+      - dev
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths-ignore:
+      - 'README.md'
+      - 'diagram/**'
+      - 'docs/**'
+
+jobs:
+  ci-build-and-test:
+    runs-on: ubuntu-latest
+
+    # Environment variables for this job
+    env:
+      # Variables
+      AWS_REGION: "us-east-1"
+      ENV: "dev-ci"
+      IMAGE_TAG: pr-${{ github.event.pull_request.number }} #${{ github.sha }}
+      TF_VAR_IMAGE_TAG: pr-${{ github.event.pull_request.number }}
+
+      # Secrets (used more than once)
+      ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      TF_VAR_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: Setup AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    # Setup of MLRun and project using Iguazio paltform (simulated real life environment)
+    # Tried to install MLRun cluster with minikube and helm, but abandoned in favor or MLRun's supported CI workflow
+    # - name: Start Minikube
+    #   uses: medyagh/setup-minikube@latest
+    #   with:
+    #     driver: docker
+    #     kubernetes-version: v1.34.1
+    #     cpus: max
+    #     memory: max
+    # - name: Verify Kubernetes version
+    #   run: kubectl version
+    # - name: Create mlrun namespace
+    #   run: kubectl create namespace mlrun
+    # - name: Verify Cluster
+    #   run: |
+    #     kubectl cluster-info
+    #     kubectl get nodes
+    #     minikube ip
+    # - name: Set up Helm
+    #   uses: azure/setup-helm@v4
+    #   with:
+    #     version: 'v4.1.4'
+    # - name: Verify Helm version
+    #   run: helm version
+    # - name: Setup Kubernetes ECR Secret file
+    #   run: |
+    #     cat <<EOF > ./k8s/credentials
+    #     [default]
+    #     aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     region=${{ env.AWS_REGION }}
+    #     EOF
+    # - name: Install MLRun via Helm
+    #   run: |
+    #     chmod +x ./k8s/install.sh
+    #     ./k8s/install.sh
+    #     rm ./k8s/credentials
+    # - name: List MLRun Pods & Services
+    #   if: always()
+    #   run: |
+    #     echo "=== All services ==="
+    #     kubectl get svc -n mlrun
+
+    #     echo "=== ALL POD STATUSES ==="
+    #     kubectl get pods -n mlrun
+
+    #     echo "=== ALL PVC ==="
+    #     kubectl get pvc -n mlrun
+        
+    - name: Set up Python3.11
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.11"
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        uv pip sync --system requirements_ci.txt
+    - name: Lint Python with flake8
+      run: |
+        # stop the build if there are errors
+        flake8 src/ setup/ images/
+    - name: Throw error
+      run: |
+        echo "Throwing error. MLRun platform subscription is not configured.
+        exit 1
+
+    # This step sets up the projects on Iguazio MLRun but requires a subscription which I didn't get
+    # https://docs.mlrun.org/en/1.11.x/projects/ci-integration.html#using-github-actions
+    - name: Submit project
+      run: python -m mlrun project ./ -w -r main ${CMD:5}
+      env:
+        V3IO_USERNAME: ${{ secrets.V3IO_USERNAME }}
+        V3IO_API: ${{ secrets.V3IO_API }}
+        V3IO_ACCESS_KEY: ${{ secrets.V3IO_ACCESS_KEY }}
+        MLRUN_DBPATH: ${{ secrets.MLRUN_DBPATH }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        CMD: ${{ github.event.comment.body}}
+
+    - name: Setup Terraform CLI 1.16.2
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.16.2"
+    - name: Setup TF project with S3 backend
+      run: |
+        terraform -chdir=Terraform/ init \
+          -backend-config="backend/dev-ci.hcl"
+    - name: Validate and format Terraform
+      run: |
+        cd Terraform
+        terraform validate
+        terraform fmt
+    - name: Download lambda appconfig layer
+      run: |
+        cd ./images/lambda_gateway
+        chmod +x download_appconfig_layer.sh
+        ./download_appconfig_layer.sh
+
+    - name: Build docker images
+      run: |
+        chmod +x ./images/build_ecr.sh
+        ./images/build_ecr.sh
+        
+    - name: Terraform apply
+      run: |
+        terraform -chdir=Terraform/ apply \
+        -var-file="dev-ci.tfvars" \
+        --auto-approve
+
+    - name: Build MLRun functions
+      env: 
+        FEATURE_BRANCH: ${{ github.head_ref }}
+        MLRUN_AWS_ROLE_ARN: ${{ secrets.MLRUN_AWS_ROLE_ARN }}
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: python ./setup/build_functions.py
+
+    - name: Run tests
+      run: |
+        pytest --capture=no
+
+    - name: Destroy terraform
+      if: always()
+      run: |
+        terraform -chdir=Terraform/ destroy \
+        -var-file="dev-ci.tfvars" \
+        --auto-approve
+      
