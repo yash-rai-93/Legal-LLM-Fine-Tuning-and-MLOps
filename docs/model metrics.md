@@ -1,32 +1,56 @@
-Rouge scores:
+# Model and Monitoring Metrics
 
-precision: Measures the number of overlapping units (n-grams) between the generated text and the reference text, divided by the total number of units in the generated text.
+[Back to the README](../README.md) | [Recorded experiments](training-and-evaluation.md)
 
-recall: Measures the number of overlapping units (n-grams) between the generated text and the reference text, divided by the total number of units in the reference text.
+This describes [utils_evaluate_model.py](../src/utils_evaluate_model.py) and the [Lambda gateway](../images/lambda_gateway/model_gateway.py).
 
-fmeasure: The harmonic mean of precision and recall, providing a single score that balances both aspects.
+## Offline evaluation
 
-It is acceptable if the generated text is longer than the reference text, as long as it contains the relevant information and is coherent. We till use fmeasure as the main metric to evaluate the model performance, as it provides a balanced view of both precision and recall (we do not want too many words that are not relevant to the answer)
+Each contract has 17 expected hypotheses and labels `entailment`, `contradiction`, or `not_mentioned`. Labels are matched to references by hypothesis ID.
 
-Source clause extracts can have multiple extracts and be out of order. I will be using rouge-3 instead of rouge-2. Even though rouge scores don't change much as N increases, the source extract could be made of multiple quotes in different orders - a high value of N will be slightly more sensitive to this noise.
+| Metric | Implementation |
+| --- | --- |
+| Document accuracy | Matching labels divided by generated hypothesis count |
+| Document `average_fmeasure` | Mean extraction score across generated hypotheses |
+| Dataset `average_accuracy` | Mean of document accuracies |
+| Dataset `average_fmeasure` | Mean of document extraction averages |
+| `t_average_fmeasure` | Mean of document extraction averages for matching labels |
+| `f_average_fmeasure` | Mean of document extraction averages for non-matching labels |
+| `t_average_perc_above_75fmeasure` | Mean of document fractions of matching-label predictions scoring strictly above 0.75 |
+| `f_average_perc_above_75fmeasure` | Equivalent fraction for non-matching labels |
+| `min_*` | Minimum corresponding document metric |
+| `count` | Number of scored documents |
 
-rouge-1 does not capture enough information since it only considers unigrams.
+Accuracy divides by generated hypothesis count, not a hard-coded 17. Verify hypothesis completeness and uniqueness before interpreting it.
 
-=======================================================================================
+`t_`/`f_` denote label matches/mismatches, not NLI classes. A document with no predictions in one group receives zero for that group's average metrics; dataset averaging includes that zero.
 
-Evaluation:
+### Extraction scores
 
-There are 17 hypotheses for each data point, the label prediction is either true or false.
-A true prediction is defined as a matching label for a hypothesis_id.
-A false prediction is defined as an ummatching label for a hypothesis_id.
--> This forms the first metric label accuracy, which is the number of true predictions divided by 17.
--> We also track the lowest accuracy of a single data point in a test set.
+ROUGE-3 is calculated with stemming disabled:
 
-Out of the true predictions, we compare the source clause extracts and find the average fmeasure rouge score for the true predictions.
--> This forms the second metric, which is the average fmeasure rouge score for the true predictions.
+- **Precision:** overlapping trigram count relative to generated trigram count.
+- **Recall:** overlapping trigram count relative to reference trigram count.
+- **F-measure:** harmonic mean of precision and recall.
 
-Out of the true predictions, we also calculate the number of true predictions with a fmeasure rouge score above a certain threshold (e.g. 0.5) divided by the total number of true predictions.
--> This forms the third metric, which is the percentage of true predictions with a fmeasure rouge greater than 0.75 (in a perfect prediction, this would be 1) out of the total number of true predictions.
+Usually, the reference `source_clause` is compared with the generated `source_clause`. Correct `not_mentioned` predictions receive a special extraction score of **1.0**.
 
-Calculations:
-Both the reference and the inference should have all 17 hypothesis_ids, and the same hypothesis_ids. There is a function to check that the id matches the hypothesis, and if not, it will print out the mismatch and return false.
+The resulting aggregate includes no-evidence cases. It is neither classification F1 nor an evidence-only ROUGE average.
+
+### Output filtering
+
+vLLM evaluation scripts parse JSON and extract `Hypotheses`. Malformed JSON or empty hypothesis lists are skipped before scoring. Report attempted/scored counts and excluded-response counts alongside the metrics.
+
+## Production monitoring
+
+The gateway compares non-`not_mentioned` evidence with the entire input contract using ROUGE-3 precision. It emits their average as `CARP_3`; when no clauses qualify, the current code emits `1.0`.
+
+Label counts are emitted by hypothesis ID. Long-term metrics include endpoint/adapter dimensions; separate short-term metrics support rollout monitoring.
+
+ROUGE measures tokenized n-gram overlap. It does not guarantee a verbatim, contiguous source span or establish semantic correctness. The [ROUGE implementation](https://github.com/google-research/google-research/blob/master/rouge/rouge_scorer.py) documents the overlap calculation.
+
+Exact span validation, per-class quality reporting, and JSON-validity metrics are proposed additions, not components of the historical aggregate.
+
+## Comparing runs
+
+Align document IDs, prompt versions, inference settings, model/adapter revisions, metric code, and exclusions. The original 119-document baseline and 121-document example have incomplete provenance; their difference should not be presented as a controlled fine-tuning gain.
