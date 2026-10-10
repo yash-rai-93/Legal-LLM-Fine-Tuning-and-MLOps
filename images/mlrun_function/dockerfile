@@ -1,0 +1,16 @@
+# Python version is 3.11.15
+# https://hub.docker.com/layers/mlrun/mlrun/1.11.0/images/sha256-f7c8a5fc581df5962c6785f2199ab093267ef9c8497c88a077d2c25e9a839410
+FROM mlrun/mlrun:1.11.0
+
+RUN python -m pip install --upgrade pip && \
+    pip install -U uv
+
+COPY requirements.txt ./tmp/requirements.txt
+
+RUN uv pip sync ./tmp/requirements.txt \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    --index-strategy unsafe-best-match
+
+# These environment variables are being overwritten when kaniko builds the function image
+# https://docs.mlrun.org/en/stable/store/datastore.html#s3
+# ENV AWS_ENDPOINT_URL_S3="https://s3.amazonaws.com"
