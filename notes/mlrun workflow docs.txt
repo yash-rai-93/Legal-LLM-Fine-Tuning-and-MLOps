@@ -1,0 +1,20 @@
+Install:
+https://docs.mlrun.org/en/1.11.x/install-mlrun-ce/mlrun-ce-installation-notes.html
+
+Running tasks:
+https://docs.mlrun.org/en/v1.10/concepts/submitting-tasks-jobs-to-functions.html
+
+Multi-stage workflows
+https://docs.mlrun.org/en/v1.10/concepts/workflow-overview.html
+
+# Local/KFP
+https://docs.mlrun.org/en/latest/concepts/local-remote.html
+https://docs.mlrun.org/en/latest/concepts/runs-workflows.html
+
+Project CI/CD
+https://docs.mlrun.org/en/v1.10/projects/ci-cd-automate.html
+
+Functions
+https://docs.mlrun.org/en/stable/runtimes/functions.html
+https://docs.mlrun.org/en/stable/runtimes/image-build.html
+https://docs.mlrun.org/en/stable/runtimes/create-and-use-functions.html#load-code-from-container

@@ -1,0 +1,43 @@
+status:
+  state: online
+metadata:
+  created: '2026-08-14T06:18:22.596000'
+  name: legalcontractextractor
+spec:
+  source: git://github.com/jerrold110/Finetune-legal-llm-mlops.git#refs/heads/main
+  origin_url: git://github.com/jerrold110/Finetune-legal-llm-mlops.git#refs/heads/main
+  functions:
+  - url: src/register_raw_dataset.py
+    name: raw-proc
+    kind: job
+    image: 975373241930.dkr.ecr.us-east-1.amazonaws.com/sand/mlrun-myjob
+    handler: process_raw
+  - url: src/evaluate_no_train.py
+    name: eval-notrain
+    kind: job
+    image: 975373241930.dkr.ecr.us-east-1.amazonaws.com/sand/mlrun-myjob
+    handler: evaluate_model
+  - url: src/evaluate_train.py
+    name: eval-train
+    kind: job
+    image: 975373241930.dkr.ecr.us-east-1.amazonaws.com/sand/mlrun-myjob
+    handler: evaluate_model_train
+  - url: src/register_model.py
+    name: register-model
+    kind: job
+    image: 975373241930.dkr.ecr.us-east-1.amazonaws.com/sand/mlrun-myjob
+    handler: register_new_model
+  - url: src/deploy_model.py
+    name: deploy-model-adapter
+    kind: job
+    image: 975373241930.dkr.ecr.us-east-1.amazonaws.com/sand/mlrun-myjob
+    handler: deploy_new_model_adapter
+  - url: src/deploy_adapter.py
+    name: deploy-adapter-existing-model
+    kind: job
+    image: mlrun/mlrun
+    handler: deploy_new_adapter
+  conda: ''
+  description: MLOps system for legal contractor extractor LLM
+  desired_state: online
+kind: project

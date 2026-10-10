@@ -1,0 +1,15 @@
+Cloudwatch
+https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-metrics-insights-querylanguage.html
+https://docs.aws.amazon.com/boto3/latest/reference/services/cloudwatch/client/put_metric_data.html
+https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_dashboard_variables.html
+https://docs.aws.amazon.com/lambda/latest/dg/python-logging.html#python-logging-lib
+https://docs.aws.amazon.com/lambda/latest/dg/monitoring-logs.html#monitoring-cloudwatchlogs-advanced
+
+AppConfig
+https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-free-form-configurations-creating.html
+https://docs.aws.amazon.com/boto3/latest/reference/services/appconfig/client/create_hosted_configuration_version.html#
+https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-creating-deployment-strategy-predefined.html
+https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-deploying.html
+https://docs.aws.amazon.com/boto3/latest/reference/services/appconfig/client/start_deployment.html#
+https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-integration-lambda-extensions-add.html
+https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-integration-lambda-extensions-config.html
