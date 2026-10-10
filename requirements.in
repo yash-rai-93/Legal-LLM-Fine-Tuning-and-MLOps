@@ -1,0 +1,21 @@
+# Recommended python version for current mlrun is 3.11 https://docs.mlrun.org/en/stable/setup-guide.html
+# in the above version, that was for mlrun 1.6 - mistake on my part
+# python 3.11 is required for sagemaker >=3.0.0
+sagemaker>=2.0.0,<3.0.0
+mlrun == 1.11.0
+s3fs # instead of mlrun[s3]
+tqdm>=4.66.0
+
+transformers>=4.51.3
+peft<2.10.0
+accelerate
+datasets==2.14.4
+bitsandbytes
+huggingface-hub
+
+dotenv
+ipython
+iprogress
+rouge-score
+matplotlib
+pylint
