@@ -10,7 +10,7 @@ output_dir="$(mktemp -d /tmp/legal-cpu-workflow.XXXXXX)"
 # Require an explicitly disabled project-level retry policy before deployment.
 retry_limit="$(aws codebuild batch-get-projects \
   --region us-east-1 --names legal-llm-cpu-check \
-  --query 'projects[0].autoRetryLimit' --output text --no-cli-pager)
+  --query 'projects[0].autoRetryLimit' --output text --no-cli-pager)"
 if [[ "$retry_limit" != "0" ]]; then
   echo "CodeBuild autoRetryLimit must be explicitly set to 0 (reported: $retry_limit)." >&2
   echo "Run in CloudShell: aws codebuild update-project --region us-east-1 --name legal-llm-cpu-check --auto-retry-limit 0 --query project.autoRetryLimit --output text --no-cli-pager" >&2
