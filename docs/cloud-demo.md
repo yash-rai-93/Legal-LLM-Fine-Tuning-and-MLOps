@@ -77,7 +77,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- First execution and verification of the S3 publication build below.
+- AWS validation and first execution of the [Step Functions wrapper](cpu-workflow.md).
 - Reproducible held-out test acquisition, pinned dependency transitive lock,
   S3 inputs/outputs and object version IDs.
 - Isolated Terraform bootstrap/runtime resources, Step Functions and run index.
@@ -125,6 +125,16 @@ failed/terminated upload can leave partial objects. There are a few S3
 upload/read/metadata requests per run, plus storage and build charges;
 credits and budget alerts are not an unlimited free-use guarantee.
 
-The new shell publisher and S3 access policy are prepared, but their first
-AWS execution remains pending. Test-split recovery and the Step Functions/API
-milestones are unchanged. No laptop execution is required.
+On 21 October 2026 (UTC), the account owner confirmed all three files in S3
+and supplied the manifest created at `2026-10-21T22:39:44.484677+00:00` from
+commit `8a1df10ea83cb9f5c476e849491cd427651c1c39`. Its train/validation counts,
+input hashes, semantic hashes and output hashes match the first verified
+CPU check. The S3 confirmation is user-reported; the second build's final
+logs and object version IDs have not been independently inspected.
+
+The next incremental milestone is the [manual Step Functions workflow](cpu-workflow.md).
+Its definition, scoped execution-role templates and read-only CloudShell
+preparation/validation script are ready. AWS definition validation, resource
+creation and first workflow execution remain pending. Test-split recovery,
+manifest-validator Lambda, DynamoDB/API and Terraform ownership remain pending.
+No laptop execution is required.

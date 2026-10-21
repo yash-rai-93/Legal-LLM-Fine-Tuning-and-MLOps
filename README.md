@@ -24,8 +24,10 @@ Its [cloud check instructions](docs/cloud-demo.md) cover isolated data
 processing and evaluation of supplied predictions. This path does not launch
 GPU jobs, provide live model inference or run MLRun. The first AWS CodeBuild
 check passed 15 tests and processed 423 training and 61 validation documents.
-S3 publication is prepared but still awaits cloud verification; orchestration
-and API provisioning remain pending. Historical experiments are separate.
+The account owner confirmed the three outputs in private S3 and supplied a
+matching manifest from commit `8a1df10`. [Step Functions setup](docs/cpu-workflow.md)
+is prepared but awaits AWS validation/deployment; the run index and API remain
+pending. Historical experiments are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

@@ -4,7 +4,7 @@ Updated 22 October 2026. Reviewed source: `de13969e5624cfb3862762986c8197ca34892
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). Private S3 publication is prepared and awaiting its first cloud verification. Test-split recovery, workflow orchestration and API infrastructure remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. A small [Step Functions wrapper](cpu-workflow.md) is prepared for AWS validation and deployment. Test-split recovery, workflow orchestration and API infrastructure remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 
@@ -38,7 +38,7 @@ Record the following privately in AWS Billing:
 
 Both account plans can receive $100 sign-up credits. AWS states Free plans incur no charges and end when credits or the plan duration run out. Paid plans can charge beyond credits or for ineligible services. A credit balance alone is not a guarantee against a bill.
 
-Keep the account on its verified Free plan. Do not upgrade, join AWS Organizations, set up Control Tower or perform another plan-changing action for this project. If it is already Paid, the strict no-out-of-pocket requirement remains unresolved until billing constraints are established; alerts alone do not solve it. Source preparation can continue independently.
+The account owner reports this account is already Paid, with approximately $100.39 estimated credits remaining at the earlier check, and a $20 monthly Budget. Those are reported values, not a live billing query or hard spending cap. Disabling bank autopay does not prevent charges. Keep execution manual, finite and small, and recheck consumption before further runs. Do not change the account plan or create GPU resources for this release.
 
 Initially select `us-east-1` if supported. Check actual access to CloudShell, IAM, S3, CodeBuild and its selected compute type, Step Functions Standard, Lambda and DynamoDB. Check API Gateway before the later API milestone. A service's published free allowance does not establish this account's permissions, regional availability or quota. If a required service needs an upgrade, stop that dependent stage and revise the scope within allowed services.
 
@@ -290,7 +290,7 @@ Do not start by running old setup/build/deployment scripts or model notebooks: t
 
 Show one successful workflow, one rejected invalid dataset, the output manifest, an honestly labeled evaluation report and CloudWatch logs. This demonstrates cloud data/MLOps engineering; it does not establish that Hermes was trained or served by this environment.
 
-Planning estimate after account checks: approximately 2-4 working days if the required services, permissions and compatible dependencies are available. This is not a deployment guarantee. No AWS account state or cloud execution has yet been verified for this revised target.
+Planning estimate after account checks: approximately 2-4 working days if the required services, permissions and compatible dependencies are available. This is not a deployment guarantee. Supplied AWS logs verify the first CPU build; the account owner also confirmed S3 files and supplied the second build's matching manifest. Remaining runtime stages have not yet been verified.
 
 ## 11. Primary references
 

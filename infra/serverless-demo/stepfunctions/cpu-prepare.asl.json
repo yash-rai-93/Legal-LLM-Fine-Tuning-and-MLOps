@@ -1,0 +1,44 @@
+{
+  "Comment": "Manual CPU data preparation only; no model inference. Input cannot override build settings.",
+  "QueryLanguage": "JSONPath",
+  "StartAt": "PrepareAndPublish",
+  "TimeoutSeconds": 1800,
+  "States": {
+    "PrepareAndPublish": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::codebuild:startBuild.sync",
+      "TimeoutSeconds": 1500,
+      "Parameters": {
+        "ProjectName": "legal-llm-cpu-check",
+        "SourceVersion": "8a1df10ea83cb9f5c476e849491cd427651c1c39",
+        "BuildspecOverride": "buildspecs/cpu-publish.yml",
+        "TimeoutInMinutesOverride": 15,
+        "QueuedTimeoutInMinutesOverride": 5,
+        "AutoRetryLimitOverride": 0,
+        "ComputeTypeOverride": "BUILD_GENERAL1_SMALL",
+        "PrivilegedModeOverride": false,
+        "ArtifactsOverride": {
+          "Type": "NO_ARTIFACTS"
+        },
+        "EnvironmentVariablesOverride": [
+          {
+            "Name": "OUTPUT_BUCKET",
+            "Value": "yash-legal-llm-cpu-20261022",
+            "Type": "PLAINTEXT"
+          }
+        ],
+        "IdempotencyToken.$": "States.Hash($$.Execution.Id, 'SHA-256')"
+      },
+      "ResultSelector": {
+        "operation": "data_preparation",
+        "live_inference": false,
+        "build_id.$": "$.Build.Id",
+        "build_status.$": "$.Build.BuildStatus",
+        "source_commit.$": "$.Build.ResolvedSourceVersion",
+        "bucket": "yash-legal-llm-cpu-20261022",
+        "prefix.$": "States.Format('runs/{}/', States.ArrayGetItem(States.StringSplit($.Build.Id, ':'), 1))"
+      },
+      "End": true
+    }
+  }
+}
