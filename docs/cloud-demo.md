@@ -1,7 +1,8 @@
 # AWS CPU deployment: current stage
 
-This branch adds CPU preparation and supplied-prediction evaluation. It does
-not provision AWS resources, train a model, invoke SageMaker, or run MLRun.
+This branch adds CPU preparation and supplied-prediction evaluation, plus
+manually deployed Step Functions orchestration of the verified CodeBuild job.
+It does not train a model, invoke SageMaker, or run MLRun.
 The original GPU implementation and its historical results remain separate.
 
 ## Account constraints
@@ -77,7 +78,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- AWS validation and first execution of the [Step Functions wrapper](cpu-workflow.md).
+- Run index, independent manifest validator and failure-path verification.
 - Reproducible held-out test acquisition, pinned dependency transitive lock,
   S3 inputs/outputs and object version IDs.
 - Isolated Terraform bootstrap/runtime resources, Step Functions and run index.
@@ -88,7 +89,8 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 Use the AWS CPU plan in `docs/aws-credit-deployment-plan.md` for the staged
 target. Do not run the original setup/deployment scripts as a substitute for
-this check. This branch is not yet a deployed application.
+this check. The manually deployed CPU workflow is operational; the API and
+complete target runtime remain pending.
 
 ## Next milestone: retain outputs in private S3
 
@@ -132,9 +134,24 @@ input hashes, semantic hashes and output hashes match the first verified
 CPU check. The S3 confirmation is user-reported; the second build's final
 logs and object version IDs have not been independently inspected.
 
-The next incremental milestone is the [manual Step Functions workflow](cpu-workflow.md).
-Its definition, scoped execution-role templates and read-only CloudShell
-preparation/validation script are ready. AWS definition validation, resource
-creation and first workflow execution remain pending. Test-split recovery,
-manifest-validator Lambda, DynamoDB/API and Terraform ownership remain pending.
-No laptop execution is required.
+## First successful orchestrated cloud run
+
+Verified from account-owner-supplied AWS output on 21 October 2026 (UTC):
+
+- AWS definition validation: OK, no diagnostics; project autoRetryLimit: 0.
+- Workflow: legal-llm-cpu-prepare (Standard, us-east-1).
+- Execution ID: 417ac134-d43a-45d9-b441-9f786ead2182.
+- Execution status: SUCCEEDED; Error and Cause: null.
+- Build: legal-llm-cpu-check:2ec431fc-340c-45f8-bb16-d93ab1c3aa89.
+- Build status: SUCCEEDED.
+- CPU source commit: 8a1df10ea83cb9f5c476e849491cd427651c1c39.
+- S3 prefix: runs/2ec431fc-340c-45f8-bb16-d93ab1c3aa89/ in the chosen bucket.
+- Operation: data_preparation; live_inference: false.
+
+This verifies the Standard workflow's synchronous CodeBuild integration and
+the build's tested preparation/publication path. The three new objects and
+their version IDs have not been separately inspected after this execution.
+The previously supplied manifest contains the expected 423/61 document counts.
+Run index, independent manifest validation, API, held-out test recovery,
+failure/cancellation checks, billing measurement and Terraform ownership
+remain pending. See [workflow operations](cpu-workflow.md).

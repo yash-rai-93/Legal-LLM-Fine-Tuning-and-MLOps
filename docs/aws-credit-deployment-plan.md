@@ -4,7 +4,7 @@ Updated 22 October 2026. Reviewed source: `de13969e5624cfb3862762986c8197ca34892
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. A small [Step Functions wrapper](cpu-workflow.md) is prepared for AWS validation and deployment. Test-split recovery, workflow orchestration and API infrastructure remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. Test-split recovery, independent manifest validation, run index and API infrastructure remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 

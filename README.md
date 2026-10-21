@@ -19,15 +19,15 @@ The project uses Hermes-4-14B, QLoRA, MLRun, and AWS to connect dataset preparat
 
 ## Project status
 
-An AWS CPU-only deployment is being prepared on `feat/aws-cpu-deployment`.
+An AWS CPU-only workflow is deployed from `feat/aws-cpu-deployment`.
 Its [cloud check instructions](docs/cloud-demo.md) cover isolated data
 processing and evaluation of supplied predictions. This path does not launch
 GPU jobs, provide live model inference or run MLRun. The first AWS CodeBuild
 check passed 15 tests and processed 423 training and 61 validation documents.
-The account owner confirmed the three outputs in private S3 and supplied a
-matching manifest from commit `8a1df10`. [Step Functions setup](docs/cpu-workflow.md)
-is prepared but awaits AWS validation/deployment; the run index and API remain
-pending. Historical experiments are separate.
+Supplied AWS execution output confirms the [Step Functions workflow](docs/cpu-workflow.md)
+succeeded end to end: it waited for CodeBuild to complete and publish verified
+outputs to private S3. The run index and API remain pending. Historical
+experiments are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

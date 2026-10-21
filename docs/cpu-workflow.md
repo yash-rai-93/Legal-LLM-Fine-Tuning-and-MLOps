@@ -1,10 +1,22 @@
-# Manual CPU workflow: next deployment milestone
+# Manual CPU workflow: deployed milestone
 
 This incremental milestone wraps the existing verified CodeBuild project in
 Step Functions Standard. DynamoDB, manifest-validator Lambda, authenticated
 API, held-out test recovery and Terraform resource ownership remain pending.
 Do not apply the original Terraform directory. Record the resources below
 and import them deliberately before a later Terraform stack manages them.
+
+## Cloud verification
+
+Account-owner-supplied AWS output on 21 October 2026 (UTC) confirms definition
+validation OK with no diagnostics and a successful execution:
+`417ac134-d43a-45d9-b441-9f786ead2182`.
+It completed build `legal-llm-cpu-check:2ec431fc-340c-45f8-bb16-d93ab1c3aa89`
+with source commit `8a1df10ea83cb9f5c476e849491cd427651c1c39`,
+operation data_preparation and live_inference false. Outputs are under
+`runs/2ec431fc-340c-45f8-bb16-d93ab1c3aa89/` in the documented bucket.
+The setup commands below describe recreation; do not rerun creation or start
+another execution merely to document this successful milestone.
 
 ## Definition and boundaries
 
