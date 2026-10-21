@@ -1,5 +1,5 @@
 {
-  "Comment": "Manual CPU data preparation only; no model inference. Input cannot override build settings.",
+  "Comment": "Manual CPU preparation, verified S3 publication and conditional DynamoDB registration. No model inference.",
   "QueryLanguage": "JSONPath",
   "StartAt": "PrepareAndPublish",
   "TimeoutSeconds": 1800,
@@ -37,6 +37,18 @@
         "bucket": "yash-legal-llm-cpu-20261022",
         "prefix.$": "States.Format('runs/{}/', States.ArrayGetItem(States.StringSplit($.Build.Id, ':'), 1))"
       },
+      "Next": "VerifyAndRegister"
+    },
+    "VerifyAndRegister": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "TimeoutSeconds": 90,
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:__AWS_ACCOUNT_ID__:function:legal-llm-cpu-register",
+        "InvocationType": "RequestResponse",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
       "End": true
     }
   }

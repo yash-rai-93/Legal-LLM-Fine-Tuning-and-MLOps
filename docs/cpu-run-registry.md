@@ -1,8 +1,10 @@
-# CPU run registry: code prepared, AWS verification pending
+# CPU run registry: deployed and independently verified
 
 The existing Step Functions/CodeBuild/S3 workflow remains deployed and unchanged.
-This milestone prepares a thin Lambda that records successful, verified CPU
-runs in DynamoDB. It has not yet been deployed or tested against real AWS APIs.
+This milestone deploys a thin Lambda that records successful, verified CPU
+runs in DynamoDB. Supplied AWS output confirms first registration and an
+idempotent duplicate invocation. The Step Functions integration update is
+prepared; AWS definition validation, update and integrated smoke test remain pending.
 
 ## What the handler verifies
 
@@ -60,7 +62,7 @@ failure contracts and idempotency, not real AWS permissions or model results.
 Application tests and packaging execute in CodeBuild, not on the laptop.
 Do not deploy a package if the cloud build or upload verification fails.
 
-## Runtime resources: create only after the cloud check succeeds
+## Runtime resources: deployed after the cloud check
 
 - DynamoDB table legal-llm-cpu-runs: string partition key run_id; no sort key
   or secondary indexes; PAY_PER_REQUEST, STANDARD class; project tag.
@@ -105,3 +107,20 @@ pending; normal AWS Budget alerts do not hard-cap account spending.
 - [Conditional writes](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ConditionExpressions.html)
 - [Versioned object reads and permissions](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html)
 - [Python Lambda runtime and SDK](https://docs.aws.amazon.com/lambda/latest/dg/lambda-python.html)
+
+## Verified cloud evidence
+
+Account-owner-supplied output confirms the following milestones:
+
+- Registry check/package build: `f30a91c1-05a2-4d21-be07-528d1c46c8ca`, SUCCEEDED.
+- Package/registry source: `39d979d9fc0e40457b3ae81e9a9a3f445099fa61`.
+- Deployed code SHA-256: `da7e2d52eaaab59426e036852c89f8388aeab58220ba3851af213da43112db08`, matching the package.
+- Lambda Active/Successful, Python 3.12; DynamoDB table ACTIVE.
+- First synchronous invocation: COMPLETED, created=true, 423 train / 61 validation documents.
+- Second invocation with the same event: COMPLETED, created=false; original timestamp preserved.
+- Registered run: `2ec431fc-340c-45f8-bb16-d93ab1c3aa89`.
+- Manifest version: `mkoNLxw1Fr2e7DS0ATSmgUGWOkvnhXQr`.
+- Original registration time (machine UTC): `2026-10-21T23:43:13.566949+00:00`.
+
+See [workflow update instructions](cpu-workflow.md#update-the-existing-workflow-with-registration).
+The live workflow still needs this update and its first integrated verification.

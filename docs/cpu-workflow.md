@@ -1,8 +1,9 @@
 # Manual CPU workflow: deployed milestone
 
 This incremental milestone wraps the existing verified CodeBuild project in
-Step Functions Standard. DynamoDB, manifest-validator Lambda, authenticated
-API, held-out test recovery and Terraform resource ownership remain pending.
+Step Functions Standard. The registry Lambda and DynamoDB table are deployed
+and independently verified. Their workflow integration update awaits cloud
+validation/update. The API, held-out split and Terraform ownership remain pending.
 Do not apply the original Terraform directory. Record the resources below
 and import them deliberately before a later Terraform stack manages them.
 
@@ -33,16 +34,20 @@ another execution merely to document this successful milestone.
 - CodeBuild project autoRetryLimit must explicitly be zero; preparation verifies it.
 - Manual operation only, no API/schedule/webhook/model download.
 
-The task uses `codebuild:startBuild.sync` to wait for build completion.
-A failed build fails the execution. Successful output identifies the build,
+The first task uses `codebuild:startBuild.sync` to wait for build completion.
+A failed build fails the execution. Its output identifies the build,
 source commit and S3 prefix. The build checks uploaded bytes before succeeding.
-There is not yet a separate manifest validator or run index.
+The updated source adds VerifyAndRegister, a synchronous 90-second Lambda task.
+It passes only that metadata, verifies object checksums/provenance and records
+DynamoDB metadata. Final output is the Lambda Payload; a Lambda exception fails
+the execution. This update still awaits cloud validation and an integrated run.
 Workflow input cannot override commands, roles, project, bucket or source ref.
 Use `{}` as input. Execution-derived idempotency is not global admission
 control; start one execution at a time and retain build concurrency one.
 
-The workflow role can manage only this CPU project and the EventBridge rule
-required by the integration. It has no S3, IAM, SageMaker or EC2 permissions.
+The updated workflow role can manage only this CPU project, the EventBridge
+rule required by the integration, and invoke legal-llm-cpu-register. It has
+no direct S3/DynamoDB, IAM, SageMaker or EC2 permissions.
 The separate CodeBuild role retains its source, logs and scoped S3 permissions.
 
 ## 1. Prepare and validate in AWS CloudShell
@@ -153,3 +158,40 @@ Do not claim Terraform owns these manually created resources until imported.
 - [Definition validation](https://docs.aws.amazon.com/cli/latest/reference/stepfunctions/validate-state-machine-definition.html)
 - [Execution-role trust](https://docs.aws.amazon.com/step-functions/latest/dg/procedure-create-iam-role.html)
 - [Build overrides](https://docs.aws.amazon.com/codebuild/latest/APIReference/API_StartBuild.html)
+
+## Update the existing workflow with registration
+
+Prerequisites: the verified registry Lambda, its table and dedicated role are
+already deployed. The original build-only workflow remains live until update.
+Run the preparation commands in section 1 against the current feature commit,
+preceding execution with `bash -n setup/prepare_cpu_workflow.sh`. This performs
+read-only cloud checks/ASL validation and renders a separate
+`update-state-machine.json`; it creates no resources and starts no jobs.
+Do not rerun create-role or create-state-machine for an existing deployment.
+
+After AWS returns result OK, set workflow_dir to the actual newly printed path
+and review its definition.json and execution-policy.json. The complete policy
+retains the existing CodeBuild/EventBridge permissions and adds only invocation
+of the registry function. Apply only that dedicated inline policy and update:
+
+```bash
+aws iam put-role-policy \
+  --role-name legal-llm-cpu-workflow-role \
+  --policy-name LegalLlmCpuWorkflow \
+  --policy-document "file://$workflow_dir/execution-policy.json" \
+  --no-cli-pager &&
+aws stepfunctions update-state-machine \
+  --region us-east-1 \
+  --cli-input-json "file://$workflow_dir/update-state-machine.json" \
+  --no-cli-pager
+```
+
+These commands update configuration without starting a build. Allow permission
+and definition changes to propagate. Read the deployed definition before
+starting a new uniquely named execution with input {}. It must contain
+PrepareAndPublish -> VerifyAndRegister. This one integration smoke test creates
+one finite CPU build. Require final COMPLETED, created=true, expected document
+counts, correct source commit and the new manifest version/run record.
+This does not recreate Lambda/DynamoDB or change their verified code package.
+The Lambda runtime/SDK remains supplied by AWS; the graph invokes its current
+unqualified function, so future Lambda code changes require separate verification.

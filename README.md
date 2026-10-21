@@ -26,9 +26,10 @@ GPU jobs, provide live model inference or run MLRun. The first AWS CodeBuild
 check passed 15 tests and processed 423 training and 61 validation documents.
 Supplied AWS execution output confirms the [Step Functions workflow](docs/cpu-workflow.md)
 succeeded end to end: it waited for CodeBuild to complete and publish verified
-outputs to private S3. [Run-registry code and cloud checks](docs/cpu-run-registry.md)
-are prepared but not deployed; the run index and API remain pending.
-Historical experiments are separate.
+outputs to private S3. The [run-registry Lambda and DynamoDB table](docs/cpu-run-registry.md)
+are deployed and independently verified, including duplicate handling.
+The workflow registration update awaits cloud validation/deployment; the API
+remains pending. Historical experiments are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

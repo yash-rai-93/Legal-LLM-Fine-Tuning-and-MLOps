@@ -52,6 +52,14 @@ request = {
 (output_dir / "create-state-machine.json").write_text(
     json.dumps(request, indent=2) + "\n", encoding="utf-8"
 )
+update_request = {
+    "stateMachineArn": f"arn:aws:states:us-east-1:{account_id}:stateMachine:legal-llm-cpu-prepare",
+    "definition": request["definition"],
+    "roleArn": request["roleArn"],
+}
+(output_dir / "update-state-machine.json").write_text(
+    json.dumps(update_request, indent=2) + "\n", encoding="utf-8"
+)
 PY
 
 aws stepfunctions validate-state-machine-definition \

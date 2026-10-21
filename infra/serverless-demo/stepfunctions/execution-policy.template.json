@@ -20,6 +20,12 @@
         "events:DescribeRule"
       ],
       "Resource": "arn:aws:events:us-east-1:__AWS_ACCOUNT_ID__:rule/StepFunctionsGetEventForCodeBuildStartBuildRule"
+    },
+    {
+      "Sid": "InvokeOnlyCpuRegistry",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "arn:aws:lambda:us-east-1:__AWS_ACCOUNT_ID__:function:legal-llm-cpu-register"
     }
   ]
 }

@@ -78,7 +78,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- AWS tests/package build and subsequent deployment of the [run registry](cpu-run-registry.md).
+- AWS validation/update and an integrated smoke test of workflow registration.
 - Integrated registration and failure-path verification.
 - Reproducible held-out test acquisition, pinned dependency transitive lock,
   S3 inputs/outputs and object version IDs.
@@ -153,9 +153,9 @@ This verifies the Standard workflow's synchronous CodeBuild integration and
 the build's tested preparation/publication path. The three new objects and
 their version IDs have not been separately inspected after this execution.
 The previously supplied manifest contains the expected 423/61 document counts.
-Run index, independent manifest validation, API, held-out test recovery,
+Automated workflow registration, API, held-out test recovery,
 failure/cancellation checks, billing measurement and Terraform ownership
-remain pending. See [workflow operations](cpu-workflow.md).
+remain pending. Independent registry verification is recorded below. See [workflow operations](cpu-workflow.md).
 
 ## Log retention and next stage
 
@@ -163,6 +163,11 @@ The account owner supplied a CloudWatch result confirming retention of seven
 days on `/aws/codebuild/legal-llm-cpu-check`. The existing successful workflow
 is unchanged. The next [run-registry milestone](cpu-run-registry.md) adds
 manifest/output integrity checks and conditional DynamoDB registration.
-Source, 14 fixture tests, a thin-package publisher and scoped role templates
-are prepared. No registry tests have run yet, and no Lambda or DynamoDB table
-has been created for this stage. Run the manual CodeBuild check first.
+The registry test/package build succeeded. The account owner confirmed an
+ACTIVE DynamoDB table, an Active/Successful Python 3.12 Lambda, a matching ZIP
+checksum and successful real registration of the existing CPU run. Repeating
+the invocation returned created=false and preserved the original timestamp.
+See [registry evidence](cpu-run-registry.md#verified-cloud-evidence).
+The [workflow integration update](cpu-workflow.md#update-the-existing-workflow-with-registration)
+is prepared but not yet AWS-validated or deployed. No new CPU build was needed
+for these independent Lambda registration checks.
