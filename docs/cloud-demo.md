@@ -78,7 +78,8 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- Run index, independent manifest validator and failure-path verification.
+- AWS tests/package build and subsequent deployment of the [run registry](cpu-run-registry.md).
+- Integrated registration and failure-path verification.
 - Reproducible held-out test acquisition, pinned dependency transitive lock,
   S3 inputs/outputs and object version IDs.
 - Isolated Terraform bootstrap/runtime resources, Step Functions and run index.
@@ -155,3 +156,13 @@ The previously supplied manifest contains the expected 423/61 document counts.
 Run index, independent manifest validation, API, held-out test recovery,
 failure/cancellation checks, billing measurement and Terraform ownership
 remain pending. See [workflow operations](cpu-workflow.md).
+
+## Log retention and next stage
+
+The account owner supplied a CloudWatch result confirming retention of seven
+days on `/aws/codebuild/legal-llm-cpu-check`. The existing successful workflow
+is unchanged. The next [run-registry milestone](cpu-run-registry.md) adds
+manifest/output integrity checks and conditional DynamoDB registration.
+Source, 14 fixture tests, a thin-package publisher and scoped role templates
+are prepared. No registry tests have run yet, and no Lambda or DynamoDB table
+has been created for this stage. Run the manual CodeBuild check first.

@@ -301,3 +301,11 @@ Planning estimate after account checks: approximately 2-4 working days if the re
 - [Step Functions workflow types](https://docs.aws.amazon.com/step-functions/latest/dg/choosing-workflow-type.html)
 - [API Gateway/Lambda/DynamoDB example](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-dynamo-db.html)
 - [AWS Budgets limitations](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html)
+
+## Current implementation checkpoint
+
+Supplied console output confirms the CodeBuild log group has seven-day
+retention. [Run-registry source and cloud packaging checks](cpu-run-registry.md)
+are prepared as the next stage. Its 14 unit tests, real AWS API integration,
+Lambda/table creation and workflow update are pending. The existing
+Step Functions CPU build workflow remains unchanged.

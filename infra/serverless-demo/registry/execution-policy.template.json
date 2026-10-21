@@ -1,0 +1,38 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VerifyOnlyCpuBuild",
+      "Effect": "Allow",
+      "Action": "codebuild:BatchGetBuilds",
+      "Resource": "arn:aws:codebuild:us-east-1:__AWS_ACCOUNT_ID__:project/legal-llm-cpu-check"
+    },
+    {
+      "Sid": "ReadOnlyVersionedCpuOutputs",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion"
+      ],
+      "Resource": "arn:aws:s3:::yash-legal-llm-cpu-20261022/runs/*"
+    },
+    {
+      "Sid": "RegisterCpuRuns",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:GetItem"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:__AWS_ACCOUNT_ID__:table/legal-llm-cpu-runs"
+    },
+    {
+      "Sid": "WriteOnlyOwnLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:us-east-1:__AWS_ACCOUNT_ID__:log-group:/aws/lambda/legal-llm-cpu-register:*"
+    }
+  ]
+}

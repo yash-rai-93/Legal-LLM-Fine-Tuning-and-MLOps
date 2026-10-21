@@ -1,0 +1,23 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - aws --version
+  build:
+    commands:
+      - bash -n setup/prepare_cpu_workflow.sh
+      - bash -n setup/publish_cpu_artifacts.sh
+      - python -m unittest discover -s tests/cloud -v
+      - python setup/package_registry.py --output-dir /tmp/legal-cpu-registry --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+# Run manually with a source commit and a one-build buildspec override.
+# Do not change the existing CPU project's default buildspec/source settings.
+# Uses only stdlib test fixtures; no pip/model downloads, GPU or resource creation.
+# The existing OUTPUT_BUCKET setting and scoped runs/* S3 policy are sufficient.
+# NO_ARTIFACTS remains the native CodeBuild artifacts setting.
