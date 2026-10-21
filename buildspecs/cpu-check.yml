@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - python -m venv /tmp/legal-cpu-venv
+      - /tmp/legal-cpu-venv/bin/python -m pip install --no-cache-dir -r requirements_cpu.txt
+      - /tmp/legal-cpu-venv/bin/python -m pip check
+  build:
+    commands:
+      - /tmp/legal-cpu-venv/bin/python -m unittest discover -s tests/cpu -v
+      - /tmp/legal-cpu-venv/bin/python -m src.cpu.prepare --input-dir dataset_engineering/processed_parquet --output-dir /tmp/legal-cpu-artifacts --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+# This first check validates only the tracked train/validation files.
+# Test-split recovery, S3 publication and deployment are separate milestones.
+# No AWS resource-creation command or model invocation is executed here.

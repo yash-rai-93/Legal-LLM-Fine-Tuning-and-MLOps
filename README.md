@@ -19,6 +19,12 @@ The project uses Hermes-4-14B, QLoRA, MLRun, and AWS to connect dataset preparat
 
 ## Project status
 
+An AWS CPU-only deployment is being prepared on `feat/aws-cpu-deployment`.
+Its [cloud check instructions](docs/cloud-demo.md) cover isolated data
+processing and evaluation of supplied predictions. This path does not launch
+GPU jobs, provide live model inference or run MLRun. Cloud validation and
+resource provisioning are still pending; historical experiments are separate.
+
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 
 | Area | Current state | Evidence |

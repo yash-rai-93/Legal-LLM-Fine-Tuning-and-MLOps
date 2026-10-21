@@ -1,0 +1,3 @@
+# Python 3.11 batch environment. Separate from the original GPU/MLRun lockfiles.
+pyarrow==19.0.1
+rouge-score==0.1.2
