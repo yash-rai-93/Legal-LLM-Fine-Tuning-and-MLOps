@@ -22,8 +22,10 @@ The project uses Hermes-4-14B, QLoRA, MLRun, and AWS to connect dataset preparat
 An AWS CPU-only deployment is being prepared on `feat/aws-cpu-deployment`.
 Its [cloud check instructions](docs/cloud-demo.md) cover isolated data
 processing and evaluation of supplied predictions. This path does not launch
-GPU jobs, provide live model inference or run MLRun. Cloud validation and
-resource provisioning are still pending; historical experiments are separate.
+GPU jobs, provide live model inference or run MLRun. The first AWS CodeBuild
+check passed 15 tests and processed 423 training and 61 validation documents.
+S3 publication is prepared but still awaits cloud verification; orchestration
+and API provisioning remain pending. Historical experiments are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

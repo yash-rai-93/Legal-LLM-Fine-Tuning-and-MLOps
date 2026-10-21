@@ -14,6 +14,12 @@ balance or budget configuration has been independently verified by this code.
 
 ## First cloud check
 
+Verified from supplied AWS logs on 21 October 2026 (UTC): commit
+`8b2606dc9efed0dfbbb73fede194dfb5d0cce1d8` passed all 15 tests and prepared
+423 training / 61 validation documents (7191 / 1037 hypothesis rows).
+The original check did not retain external artifacts. This evidence verifies
+CPU processing and fixture-based metric tests, not a trained model's accuracy.
+
 Run the check in AWS CodeBuild, not on the laptop:
 
 | Setting | Value |
@@ -71,7 +77,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- First CodeBuild execution and resolution of any cloud test failures.
+- First execution and verification of the S3 publication build below.
 - Reproducible held-out test acquisition, pinned dependency transitive lock,
   S3 inputs/outputs and object version IDs.
 - Isolated Terraform bootstrap/runtime resources, Step Functions and run index.
@@ -83,3 +89,42 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 Use the AWS CPU plan in `docs/aws-credit-deployment-plan.md` for the staged
 target. Do not run the original setup/deployment scripts as a substitute for
 this check. This branch is not yet a deployed application.
+
+## Next milestone: retain outputs in private S3
+
+The chosen destination is `yash-legal-llm-cpu-20261022` in `us-east-1`.
+Keep Block Public Access enabled, ACLs disabled, versioning enabled and
+SSE-S3 encryption. Bucket creation was reported by the account owner; its
+configuration is checked where needed by the publication build.
+
+1. In CodeBuild's environment settings, open the actual service-role link.
+   Add the inline policy in
+   `infra/serverless-demo/policies/codebuild-artifact-access.json` to that role.
+   It allows bucket configuration reads plus read/write/multipart cleanup
+   only under this bucket's `runs/` prefix. It does not allow object deletion,
+   public ACL changes, bucket policy changes or access to other buckets.
+   Existing source/log permissions remain necessary; inspect them separately
+   if auditing the role's effective permissions.
+2. Set the CodeBuild buildspec to `buildspecs/cpu-publish.yml` and add a
+   plaintext environment variable named `OUTPUT_BUCKET` with the bucket name.
+   This is configuration, not a secret. Keep native Artifacts at No artifacts:
+   the build script performs the S3 publication itself.
+3. Retain the same small compute type, 15-minute timeout, concurrency one,
+   disabled privileged mode and manual trigger. Use the feature branch.
+4. Run one build. It reruns CPU checks, generates the outputs, checks bucket
+   region/versioning, uploads with SSE-S3, downloads each object in the AWS
+   build and compares its bytes. It prints object size, encryption and version
+   ID, without printing contract contents.
+5. After success, browse `runs/<build-run-UUID>/` in S3. It must contain
+   `train.jsonl`, `validation.jsonl` and `manifest.json`. A different prefix is
+   used for every build; old runs are not overwritten by normal publication.
+
+The script uploads the manifest last. Consumers must require CodeBuild
+success and valid output checksums before registering a run, because a
+failed/terminated upload can leave partial objects. There are a few S3
+upload/read/metadata requests per run, plus storage and build charges;
+credits and budget alerts are not an unlimited free-use guarantee.
+
+The new shell publisher and S3 access policy are prepared, but their first
+AWS execution remains pending. Test-split recovery and the Step Functions/API
+milestones are unchanged. No laptop execution is required.
