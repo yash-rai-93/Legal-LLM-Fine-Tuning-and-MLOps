@@ -14,7 +14,6 @@
         "BuildspecOverride": "buildspecs/cpu-publish.yml",
         "TimeoutInMinutesOverride": 15,
         "QueuedTimeoutInMinutesOverride": 5,
-        "AutoRetryLimitOverride": 0,
         "ComputeTypeOverride": "BUILD_GENERAL1_SMALL",
         "PrivilegedModeOverride": false,
         "ArtifactsOverride": {

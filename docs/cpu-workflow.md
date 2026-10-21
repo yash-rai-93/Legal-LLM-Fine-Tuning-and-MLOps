@@ -17,7 +17,8 @@ and import them deliberately before a later Terraform stack manages them.
 - Buildspec: `buildspecs/cpu-publish.yml`.
 - Bucket: `yash-legal-llm-cpu-20261022`, private, versioned.
 - Queue limit: 5 minutes; build: 15 minutes; task: 25 minutes; workflow: 30 minutes.
-- Small compute, privileged mode off, no workflow Retry, CodeBuild auto-retries off.
+- Small compute, privileged mode off, no workflow Retry.
+- CodeBuild project autoRetryLimit must explicitly be zero; preparation verifies it.
 - Manual operation only, no API/schedule/webhook/model download.
 
 The task uses `codebuild:startBuild.sync` to wait for build completion.
@@ -40,10 +41,21 @@ Use the browser console in us-east-1. In the existing clean cloud checkout:
 cd ~/Legal-LLM-Fine-Tuning-and-MLOps
 git fetch origin feat/aws-cpu-deployment
 git switch --detach origin/feat/aws-cpu-deployment
+# One-time project setting: disable automatic build retries (does not start a build).
+aws codebuild update-project \
+  --region us-east-1 --name legal-llm-cpu-check --auto-retry-limit 0 \
+  --query project.autoRetryLimit --output text --no-cli-pager
 bash setup/prepare_cpu_workflow.sh
 ```
 
-This renders account-specific JSON in a new temporary directory and invokes
+The project-setting command changes only automatic retry behavior; it should
+return 0. The preparation script reads the setting and refuses to proceed
+unless it is explicitly zero. AWS rejected AutoRetryLimitOverride in the
+optimized Step Functions integration during the first cloud validation,
+so the definition deliberately omits it and inherits the checked project setting.
+Recheck this setting before executions if project configuration changes.
+
+Preparation renders account-specific JSON in a new temporary directory and invokes
 AWS's definition validator. It creates no cloud resources and starts no build.
 Require `"result": "OK"` and review warnings. Validation checks the definition,
 not effective IAM permissions or actual build behavior.
