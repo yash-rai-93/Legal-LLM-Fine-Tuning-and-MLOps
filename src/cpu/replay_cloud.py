@@ -57,6 +57,8 @@ def compact_groups(report):
             "missing_requests": request["missing_documents"],
             "invalid_requests": request["invalid_documents"],
             "unique_reference_documents": group["unique_reference_documents"],
+            "unique_input_contracts": group["unique_input_contracts"],
+            "matched_reference_records": group["matched_reference_records"],
             "reference_subset_fraction": group["reference_subset_fraction"],
             "request_label_accuracy_all_attempts": request["label_accuracy_all_attempts"],
             "first_attempt_label_accuracy_all_attempts": first["label_accuracy_all_attempts"],

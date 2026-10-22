@@ -246,6 +246,11 @@ deterministic first-attempt-per-document metrics, including missing/invalid
 outputs and the actual held-out subset covered. Model/adapter revision gaps
 and the distinction from the new CPU prompt remain explicit.
 
-Twenty new replay tests bring the next build to 52 CPU and 28 cloud tests.
-These new tests and real replay metrics remain pending AWS execution. No
-live inference, workflow update or additional resource is required.
+The initial evaluation build `84a774e3-3a70-477d-9c6f-651236af5d01`
+passed 52 CPU and 28 cloud tests, then stopped before publication because a
+global reference-text uniqueness guard rejected duplicate held-out texts.
+A targeted fix now preserves equivalent reference aliases, rejects conflicting
+requested annotations and reports input-contract versus matched-record counts.
+Four regression tests bring the next build to 56 CPU and 28 cloud tests.
+The fix and real replay metrics remain pending AWS verification. No live
+inference, workflow update or additional resource is required.

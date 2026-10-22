@@ -352,7 +352,11 @@ tracked. It uses the pinned 4/7-client logs, matches each input contract exactly
 to the accepted held-out S3 data, preserves repeated/failed request accounting
 and keeps request versus first-attempt-per-document metrics separate.
 Immutable generating model/adapter revisions remain unknown. New source and
-20 meaningful unit tests await their manual AWS evaluation-check build.
+20 replay unit tests passed in the initial AWS check (80 total), which then
+stopped on an overly strict global reference-text uniqueness assumption.
+A fix and four additional tests now preserve equivalent duplicate-text aliases
+while rejecting conflicting requested annotations. The next build runs 84
+tests and must verify real replay results before any metric is accepted.
 
 This is a separate finite S3-report job, without API/DynamoDB registration,
 new inference calls, added IAM permissions or deployed workflow changes.

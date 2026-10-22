@@ -46,7 +46,8 @@ The job checks HEAD metadata, downloads the current object, then requires its
 returned version, AES256 encryption, size and checksum to equal the accepted
 identity. A changed current version causes failure; it does not silently fall
 back to another reference. Semantic hash, document counts, canonical hypotheses,
-text hashes and unique IDs/text are checked again.
+text hashes and unique document IDs are checked again. Exact-text duplicates
+inside the held-out split are retained and resolved by the policy below.
 
 The previously accepted catalog build status is evidence recorded in the
 reviewed configuration. This job does not add CodeBuild inspection permissions
@@ -55,10 +56,21 @@ to the execution role or query a producer build dynamically.
 ## Matching and response handling
 
 Each saved input must use the reviewed chat-template boundaries. Its contract
-must match exactly one held-out reference text, with no stripping, fuzzy match
-or document-order guessing. Unknown inputs, changed source bytes, malformed
-log structure or request-count disagreement fail the entire job before
-publication.
+must match the held-out reference text exactly, with no stripping, fuzzy match
+or document-order guessing. Multiple IDs may carry the same official test text.
+They form one scoring target only when all 17 hypothesis IDs, canonical texts,
+labels and evidence strings agree. The lexicographically smallest ID names
+that equivalent target; all original alias IDs are retained per attempt.
+A requested exact-text group with conflicting reference annotations is rejected,
+with candidate IDs in the diagnostic. An unrequested duplicate group does not
+block otherwise identifiable requests.
+
+Reports distinguish unique input contracts from matched reference records,
+and list duplicate text groups and their annotation equivalence. The matched
+record fraction includes equivalent aliases; it does not imply independent
+requests for every alias. Duplicate document IDs remain invalid. Unknown inputs,
+changed source bytes, malformed logs or request-count disagreement fail the
+job before publication.
 
 An absent/empty output remains a missing prediction. A nonempty malformed JSON
 response, wrong envelope or invalid hypothesis schema remains an invalid
@@ -77,7 +89,7 @@ Reports keep the two benchmark groups separate and provide both views:
 | View | Denominator and selection |
 | --- | --- |
 | Request-level | Every saved benchmark request, including repeated contracts |
-| First attempt per requested document | Earliest timestamp for each contract within that group; ties use source path then record ordinal |
+| First attempt per input contract | Earliest timestamp for each exact-text target within that benchmark group; equivalent reference aliases count once; ties use source path then record ordinal |
 
 Each view uses the existing CPU evaluator. Missing/invalid outputs contribute
 zero correct labels to all-attempts accuracy. Scored-only accuracy and
@@ -97,19 +109,38 @@ multi-span quotes may fail that strict check. Canonical hypothesis-text
 mismatches are also counted; label matching uses the fixed IDs. These audits
 do not alter the original label or ROUGE metric rules.
 
+## First AWS run and reference-duplicate fix
+
+Build `legal-llm-cpu-check:84a774e3-3a70-477d-9c6f-651236af5d01`
+from source `5e0217a0de7375b68bca593720847211a65bd47d` passed
+52 CPU and 28 cloud tests, then failed during real reference validation with
+`ValueError: Reference exact text is ambiguous`. Supplied logs show the
+exception occurred before report preparation/publication. The deployed CPU
+workflow, run registry, status API and accepted S3 test data were unchanged.
+
+That guard incorrectly required globally unique text among held-out records.
+The fix preserves pinned bytes, versions, hashes, all source IDs and strict
+gold-reference validation. Ambiguity is assessed only for requested exact-text
+groups, and equivalent copies do not inflate scoring units. Conflicting
+requested gold labels or evidence still fail. Four new tests cover equivalent
+aliases, conflicting labels/evidence, unrequested conflicts and duplicate IDs.
+The next manual AWS check runs 84 tests in total; source fixes and replay
+results are not yet cloud-verified.
+
 ## AWS build and outputs
 
 Run one manual override build with `buildspecs/evaluation-check.yml` and an
 immutable feature commit. It installs only the existing CPU requirements,
-runs 52 CPU tests (32 existing plus 20 replay tests) and the existing 28 cloud
+runs 56 CPU tests (32 existing plus 24 replay tests) and the existing 28 cloud
 tests, then evaluates the historical logs and publishes verified S3 artifacts.
 
 The new fixtures test source pins, request/response parsing, exact contract
 mapping, reference identity, known accuracy denominators, deterministic first
 attempt selection, malformed/missing output accounting, evidence audit,
 unknown model/prompt provenance, S3 races/read-back failures, wrong destinations
-and refusal to overwrite existing keys. They are synthetic unit fixtures and
-have not yet run in AWS. Real historical replay metrics remain unverified.
+and refusal to overwrite existing keys. The initial 80 tests passed in AWS;
+four duplicate-reference regression tests are newly prepared and still require
+AWS verification. Real historical replay metrics remain unverified.
 
 Outputs use `runs/<evaluation-build-UUID>/evaluation/`:
 

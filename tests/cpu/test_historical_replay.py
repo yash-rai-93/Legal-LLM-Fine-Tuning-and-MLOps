@@ -9,7 +9,7 @@ import unittest
 
 from src.cpu.catalog_publish import BUCKET
 from src.cpu.historical_replay import (
-    ASSISTANT_SUFFIX, USER_MARKER, checked_source, decode_prediction,
+    ASSISTANT_SUFFIX, USER_MARKER, build_text_index, checked_source, decode_prediction,
     evaluate_view, parse_log, prepare_replay, reference_documents,
     request_identity, sha256, summary_record,
 )
@@ -155,7 +155,7 @@ class ReplayParsingTests(unittest.TestCase):
 
     def test_contract_mapping_is_exact_and_rejects_ambiguous_template_boundaries(self):
         doc = reference_fixture(1)
-        index = {doc["text"]: "1"}
+        index = build_text_index({"1": doc})
         identity = request_identity(request_text(doc["text"]), index)
         self.assertEqual(identity["reference_document_id"], "1")
         for contract in (doc["text"] + " ", "Unknown contract"):
@@ -217,6 +217,88 @@ class ReplayReferenceTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "wording"):
             reference_documents(body, identity)
+
+
+def replace_reference_fixture(config, docs):
+    result = deepcopy(config)
+    body = "".join(
+        json.dumps(doc, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+        for doc in docs
+    ).encode("utf-8")
+    result["reference"].update({
+        "bytes": len(body), "sha256": sha256(body),
+        "semantic_sha256": semantic_sha256(docs), "documents": len(docs),
+        "hypothesis_rows": 17 * len(docs),
+    })
+    return result, body
+
+
+class DuplicateReferenceTests(unittest.TestCase):
+    def test_equivalent_text_aliases_preserve_ids_without_inflating_metric_units(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config, _body, docs = replay_fixture(root)
+            alias = deepcopy(docs[0])
+            alias["document_id"] = "3"
+            config, body = replace_reference_fixture(config, [*docs, alias])
+            report = prepare_replay(root, body, config, COMMIT, root / "out")
+            group = report["groups"]["fixture"]
+            self.assertEqual(report["reference_dataset_documents"], 3)
+            self.assertEqual(report["reference_unique_texts"], 2)
+            self.assertEqual(group["unique_input_contracts"], 2)
+            self.assertEqual(group["matched_reference_records"], 3)
+            self.assertEqual(group["matched_reference_record_ids"], ["1", "2", "3"])
+            self.assertEqual(group["reference_subset_fraction"], 1)
+            self.assertEqual(group["request_level"]["attempted_documents"], 3)
+            self.assertEqual(group["unique_documents_first_attempt"]["attempted_documents"], 2)
+            self.assertAlmostEqual(group["request_level"]["label_accuracy_all_attempts"], 33 / 51)
+            self.assertAlmostEqual(
+                group["unique_documents_first_attempt"]["label_accuracy_all_attempts"], 16 / 34
+            )
+            attempts = [json.loads(line) for line in (root / "out/attempts.jsonl").read_text().splitlines()]
+            aliases = [row for row in attempts if row["reference_document_id"] == "1"]
+            self.assertTrue(aliases)
+            self.assertTrue(all(row["reference_document_ids"] == ["1", "3"] for row in aliases))
+            self.assertTrue(all(row["equivalent_reference_aliases"] for row in aliases))
+
+    def test_conflicting_requested_labels_or_evidence_fail_without_report(self):
+        for field, value in (
+            ("label", "contradiction"), ("source_clause", "Synthetic fixture contract"),
+        ):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                config, _body, docs = replay_fixture(root)
+                alias = deepcopy(docs[0])
+                alias["document_id"] = "3"
+                alias["inference"][0][field] = value
+                config, body = replace_reference_fixture(config, [*docs, alias])
+                with self.assertRaisesRegex(ValueError, "Conflicting reference annotations.*1, 3"):
+                    prepare_replay(root, body, config, COMMIT, root / "out")
+                self.assertFalse((root / "out").exists())
+
+    def test_unrequested_conflicting_text_group_does_not_block_identifiable_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config, _body, docs = replay_fixture(root)
+            other = reference_fixture(4)
+            conflicting = deepcopy(other)
+            conflicting["document_id"] = "5"
+            conflicting["inference"][0]["label"] = "contradiction"
+            config, body = replace_reference_fixture(config, [*docs, other, conflicting])
+            report = prepare_replay(root, body, config, COMMIT, root / "out")
+            group = report["groups"]["fixture"]
+            self.assertEqual(group["matched_reference_records"], 2)
+            self.assertEqual(group["reference_subset_fraction"], 0.5)
+            self.assertEqual(group["request_level"]["attempted_documents"], 3)
+            self.assertEqual(report["duplicate_reference_text_groups"][0]["document_ids"], ["4", "5"])
+            self.assertFalse(report["duplicate_reference_text_groups"][0]["equivalent_annotations"])
+
+    def test_duplicate_document_ids_remain_invalid_when_text_and_annotations_agree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config, _body, docs = replay_fixture(Path(directory))
+            config, body = replace_reference_fixture(config, [*docs, deepcopy(docs[0])])
+            with self.assertRaisesRegex(ValueError, "Duplicate document_id"):
+                reference_documents(body, config["reference"])
 
 
 class ReplayMetricTests(unittest.TestCase):

@@ -57,9 +57,32 @@ def reference_documents(body, identity):
                     for item in doc["inference"]), "Reference hypothesis wording differs")
     require(semantic_sha256(documents) == identity["semantic_sha256"],
             "Reference semantic identity differs")
-    require(len({doc["text"] for doc in documents}) == len(documents),
-            "Reference exact text is ambiguous")
     return index
+
+
+def build_text_index(references):
+    """Group exact-text aliases without choosing between different gold annotations."""
+    grouped = {}
+    for key, doc in references.items():
+        by_id = {item["hypothesis_id"]: item for item in doc["inference"]}
+        annotation = [
+            {field: by_id[hid][field] for field in (
+                "hypothesis_id", "hypothesis", "label", "source_clause"
+            )}
+            for hid in HYPOTHESES
+        ]
+        group = grouped.setdefault(doc["text"], {"ids": [], "signatures": set()})
+        group["ids"].append(key)
+        group["signatures"].add(semantic_sha256(annotation))
+    return {
+        text: {
+            "reference_document_id": sorted(group["ids"])[0],
+            "reference_document_ids": sorted(group["ids"]),
+            "reference_text_sha256": sha256(text.encode("utf-8")),
+            "equivalent_annotations": len(group["signatures"]) == 1,
+        }
+        for text, group in grouped.items()
+    }
 
 
 def parse_log(body):
@@ -103,8 +126,17 @@ def request_identity(raw_input, text_index):
     prefix, user = rendered.split(USER_MARKER)
     contract = user[:-len(ASSISTANT_SUFFIX)]
     require(contract in text_index, "Historical contract has no exact held-out reference match")
+    match = text_index[contract]
+    require(
+        match["equivalent_annotations"] is True,
+        "Conflicting reference annotations for document IDs: "
+        + ", ".join(match["reference_document_ids"]),
+    )
     return {
-        "reference_document_id": text_index[contract],
+        "reference_document_id": match["reference_document_id"],
+        "reference_document_ids": list(match["reference_document_ids"]),
+        "reference_text_sha256": match["reference_text_sha256"],
+        "equivalent_reference_aliases": len(match["reference_document_ids"]) > 1,
         "prompt_prefix_sha256": sha256(prefix.encode("utf-8")),
         "parameters_sha256": sha256(json_bytes(parameters)),
         "generation_settings": {
@@ -206,7 +238,7 @@ def prepare_replay(root, reference_body, config, source_commit, output_dir):
             and re.fullmatch(r"[0-9a-f]{40}", config["historical_source_commit"]),
             "An immutable historical source commit is required")
     references = reference_documents(reference_body, config["reference"])
-    text_index = {doc["text"]: key for key, doc in references.items()}
+    text_index = build_text_index(references)
     all_attempts, groups, sources = [], {}, {}
     for group in config["groups"]:
         require(type(group.get("requests")) is int and 0 < group["requests"] <= 100,
@@ -260,11 +292,17 @@ def prepare_replay(root, reference_body, config, source_commit, output_dir):
                     "generation_settings": attempt["generation_settings"], "request_count": 0,
                 }
             settings[key]["request_count"] += 1
+        matched_record_ids = sorted({
+            key for attempt in group_attempts for key in attempt["reference_document_ids"]
+        })
         groups[name] = {
             "recorded_summary": summary,
             "observed_request_records": len(group_attempts),
             "unique_reference_documents": first_metrics["attempted_documents"],
-            "reference_subset_fraction": first_metrics["attempted_documents"] / len(references),
+            "unique_input_contracts": first_metrics["attempted_documents"],
+            "matched_reference_records": len(matched_record_ids),
+            "matched_reference_record_ids": matched_record_ids,
+            "reference_subset_fraction": len(matched_record_ids) / len(references),
             "repeated_requests": len(group_attempts) - first_metrics["attempted_documents"],
             "request_level": request_metrics, "unique_documents_first_attempt": first_metrics,
             "prompt_and_settings": list(settings.values()),
@@ -285,6 +323,21 @@ def prepare_replay(root, reference_body, config, source_commit, output_dir):
         "historical_repository": config["historical_repository"],
         "historical_source_commit": config["historical_source_commit"],
         "reference": config["reference"], "reference_dataset_documents": len(references),
+        "reference_unique_texts": len(text_index),
+        "duplicate_reference_text_groups": [
+            {
+                "document_ids": match["reference_document_ids"],
+                "text_sha256": match["reference_text_sha256"],
+                "equivalent_annotations": match["equivalent_annotations"],
+            }
+            for match in sorted(text_index.values(), key=lambda item: item["reference_document_id"])
+            if len(match["reference_document_ids"]) > 1
+        ],
+        "reference_resolution_policy": (
+            "Exact-text duplicates are usable only when all 17 scoring annotations match. "
+            "The lexicographically smallest ID names the equivalent target; every alias ID "
+            "is retained. A requested group with conflicting annotations is rejected."
+        ),
         "scope": "Historical benchmark subset; request and deterministic first-attempt metrics",
         "metric_implementation": {
             "rouge_score_version": version("rouge-score"), "ngram": 3, "use_stemmer": False,
@@ -298,8 +351,10 @@ def prepare_replay(root, reference_body, config, source_commit, output_dir):
         "denominator_policy": (
             "Request metrics include every logged benchmark request, including repeated "
             "contracts. First-attempt metrics include each requested contract once. Neither "
-            "view treats unrequested held-out documents as attempted. Missing/invalid "
-            "responses count as wrong in all-attempts label accuracy."
+            "view treats unrequested held-out documents as attempted. Equivalent exact-text "
+            "reference aliases form one input-contract target; covered reference-record "
+            "counts and all alias IDs are reported separately. Missing/invalid responses "
+            "count as wrong in all-attempts label accuracy."
         ),
     }
     attempt_bytes = "".join(
