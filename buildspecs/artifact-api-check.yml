@@ -1,0 +1,21 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - aws --version
+  build:
+    commands:
+      - python -m unittest discover -s tests/cloud -v
+      - python -m src.cloud.artifact_api_check --output-config /tmp/legal-private-artifacts/approved-artifacts.json
+      - python setup/package_registry.py --component artifact-api --approved-config /tmp/legal-private-artifacts/approved-artifacts.json --output-dir /tmp/legal-cpu-artifact-api --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+# Manual override only. No pip, model calls, infrastructure updates or GPU.
+# Tests thin handlers, loads private pinned configuration, reads two approved current metadata objects and requires
+# their actual version/bytes/hash to match, then publishes a thin Lambda ZIP.
+# Real HTTP API authorization is tested separately after deployment.

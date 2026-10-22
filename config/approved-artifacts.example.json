@@ -1,0 +1,40 @@
+{
+  "schema_version": "contractnli-approved-artifacts-v1",
+  "bucket": "__ARTIFACT_BUCKET__",
+  "catalog": {
+    "key": "__CATALOG_KEY__",
+    "prefix": "__CATALOG_PREFIX__",
+    "version_id": "__CATALOG_VERSION__",
+    "bytes": 1,
+    "sha256": "__CATALOG_SHA256__",
+    "source_commit": "__CATALOG_SOURCE_COMMIT__",
+    "build_id": "__CATALOG_BUILD_ID__",
+    "schema_version": "contractnli-artifact-catalog-v1",
+    "operation": "dataset_prompt_registration",
+    "expected_documents": {
+      "train": 423,
+      "validation": 61,
+      "test": 123
+    }
+  },
+  "evaluation": {
+    "key": "__EVALUATION_KEY__",
+    "prefix": "__EVALUATION_PREFIX__",
+    "version_id": "__EVALUATION_VERSION__",
+    "bytes": 1,
+    "sha256": "__EVALUATION_SHA256__",
+    "source_commit": "__EVALUATION_SOURCE_COMMIT__",
+    "build_id": "__EVALUATION_BUILD_ID__",
+    "evaluation_id": "__EVALUATION_ID__",
+    "schema_version": "contractnli-evaluation-artifacts-v1",
+    "operation": "evaluate_historical_benchmark_predictions",
+    "historical_source_commit": "__HISTORICAL_SOURCE_COMMIT__"
+  },
+  "reference_test": {
+    "key": "__REFERENCE_TEST_KEY__",
+    "version_id": "__REFERENCE_TEST_VERSION__",
+    "bytes": 1,
+    "documents": 123,
+    "sha256": "__REFERENCE_TEST_SHA256__"
+  }
+}

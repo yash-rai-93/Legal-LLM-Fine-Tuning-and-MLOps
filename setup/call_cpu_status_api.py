@@ -12,9 +12,7 @@ import urllib.request
 import uuid
 
 
-def request_url(endpoint, run_id):
-    if not isinstance(run_id, str) or str(uuid.UUID(run_id)) != run_id:
-        raise ValueError("Use a canonical run UUID")
+def endpoint_url(endpoint):
     parsed = urllib.parse.urlsplit(endpoint)
     if (
         parsed.scheme != "https"
@@ -24,7 +22,30 @@ def request_url(endpoint, run_id):
         or parsed.path not in ("", "/")
     ):
         raise ValueError("Use the default-stage us-east-1 API Gateway endpoint")
-    return "https://" + parsed.hostname + "/runs/" + run_id
+    return "https://" + parsed.hostname
+
+
+def canonical_uuid(value):
+    if not isinstance(value, str) or str(uuid.UUID(value)) != value:
+        raise ValueError("Use a canonical UUID")
+    return value
+
+
+def request_url(endpoint, run_id):
+    canonical_uuid(run_id)
+    return endpoint_url(endpoint) + "/runs/" + run_id
+
+
+def artifact_request_url(endpoint, resource, evaluation_id=None):
+    if resource not in ("datasets", "prompts", "evaluation"):
+        raise ValueError("Choose an allowlisted metadata resource")
+    if resource == "evaluation":
+        path = "/evaluations/" + canonical_uuid(evaluation_id)
+    else:
+        if evaluation_id is not None:
+            raise ValueError("Evaluation ID is valid only for an evaluation lookup")
+        path = "/" + resource
+    return endpoint_url(endpoint) + path
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -35,10 +56,18 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--endpoint", required=True)
-    parser.add_argument("--run-id", required=True)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--run-id")
+    target.add_argument("--resource", choices=("datasets", "prompts", "evaluation"))
+    parser.add_argument("--evaluation-id")
     parser.add_argument("--unsigned", action="store_true", help="Test IAM rejection without loading credentials")
     args = parser.parse_args()
-    url = request_url(args.endpoint, args.run_id)
+    if args.run_id is not None:
+        if args.evaluation_id is not None:
+            parser.error("--evaluation-id requires --resource evaluation")
+        url = request_url(args.endpoint, args.run_id)
+    else:
+        url = artifact_request_url(args.endpoint, args.resource, args.evaluation_id)
     headers = {"Accept": "application/json"}
     if not args.unsigned:
         try:

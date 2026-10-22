@@ -13,13 +13,43 @@ import subprocess
 import zipfile
 
 
+PROFILES = {
+    "registry": ("registry.py", "cpu-register.zip", "registry.lambda_handler",
+                 "contractnli-registry-package-v1", "registry_package"),
+    "status-api": ("status_api.py", "cpu-status-api.zip", "status_api.lambda_handler",
+                   "contractnli-status-api-package-v1", "status_api_package"),
+    "artifact-api": ("artifact_api.py", "cpu-artifact-api.zip", "artifact_api.lambda_handler",
+                     "contractnli-artifact-api-package-v1", "artifact_api_package"),
+}
+
+
+def create_package(component, package_path, approved_path=None):
+    if component not in PROFILES:
+        raise ValueError("Unsupported Lambda component")
+    module = PROFILES[component][0]
+    root = Path(__file__).resolve().parents[1]
+    entries = [(module, root / "src/cloud" / module)]
+    if component == "artifact-api":
+        if approved_path is None:
+            raise ValueError("The artifact API requires an explicit private configuration file")
+        entries.append(("approved_artifacts.json", Path(approved_path)))
+    elif approved_path is not None:
+        raise ValueError("Private artifact configuration is only valid for artifact-api")
+    with zipfile.ZipFile(package_path, "w") as archive:
+        for name, source in entries:
+            entry = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
+            entry.compress_type = zipfile.ZIP_DEFLATED
+            entry.external_attr = 0o644 << 16
+            archive.writestr(entry, source.read_bytes())
+
+
 def aws_json(*arguments):
     result = subprocess.run(
         ["aws", *arguments, "--region", "us-east-1", "--output", "json", "--no-cli-pager"],
         capture_output=True, text=True, check=False,
     )
     if result.returncode:
-        raise RuntimeError(result.stderr.strip() or "AWS CLI request failed")
+        raise RuntimeError("AWS CLI package request failed")
     return json.loads(result.stdout) if result.stdout.strip() else {}
 
 
@@ -55,7 +85,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--source-commit", required=True)
-    parser.add_argument("--component", choices=("registry", "status-api"), default="registry")
+    parser.add_argument("--component", choices=tuple(PROFILES), default="registry")
+    parser.add_argument("--approved-config")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.source_commit):
         raise ValueError("An immutable package source commit is required")
@@ -64,7 +95,7 @@ def main():
     if project != "legal-llm-cpu-check" or not re.fullmatch(r"[0-9a-f-]{36}", run_id):
         raise ValueError("Unexpected package build identity")
     bucket = os.environ["OUTPUT_BUCKET"]
-    if bucket != "yash-legal-llm-cpu-20261022" or os.environ["AWS_DEFAULT_REGION"] != "us-east-1":
+    if not re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", bucket) or os.environ["AWS_DEFAULT_REGION"] != "us-east-1":
         raise ValueError("Unexpected package destination or region")
     location = aws_json("s3api", "get-bucket-location", "--bucket", bucket)
     if (location.get("LocationConstraint") or "us-east-1") != "us-east-1":
@@ -74,20 +105,9 @@ def main():
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=False)
-    profiles = {
-        "registry": ("registry.py", "cpu-register.zip", "registry.lambda_handler",
-                     "contractnli-registry-package-v1", "registry_package"),
-        "status-api": ("status_api.py", "cpu-status-api.zip", "status_api.lambda_handler",
-                       "contractnli-status-api-package-v1", "status_api_package"),
-    }
-    module, filename, handler, schema, operation = profiles[args.component]
-    source = Path(__file__).resolve().parents[1] / "src/cloud" / module
+    module, filename, handler, schema, operation = PROFILES[args.component]
     package = output_dir / filename
-    entry = zipfile.ZipInfo(module, date_time=(2020, 1, 1, 0, 0, 0))
-    entry.compress_type = zipfile.ZIP_DEFLATED
-    entry.external_attr = 0o644 << 16
-    with zipfile.ZipFile(package, "w") as archive:
-        archive.writestr(entry, source.read_bytes())
+    create_package(args.component, package, approved_path=args.approved_config)
     prefix = "runs/" + run_id + "/packages/"
     metadata = publish(
         package, bucket=bucket, key=prefix + package.name,

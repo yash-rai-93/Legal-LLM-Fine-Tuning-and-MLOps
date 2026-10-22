@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadApprovedCatalogVersion",
+      "Effect": "Allow",
+      "Action": "s3:GetObjectVersion",
+      "Resource": "arn:aws:s3:::__ARTIFACT_BUCKET__/__CATALOG_MANIFEST_KEY__",
+      "Condition": {
+        "StringEquals": {
+          "s3:VersionId": "__CATALOG_MANIFEST_VERSION__"
+        }
+      }
+    },
+    {
+      "Sid": "ReadApprovedEvaluationVersion",
+      "Effect": "Allow",
+      "Action": "s3:GetObjectVersion",
+      "Resource": "arn:aws:s3:::__ARTIFACT_BUCKET__/__EVALUATION_MANIFEST_KEY__",
+      "Condition": {
+        "StringEquals": {
+          "s3:VersionId": "__EVALUATION_MANIFEST_VERSION__"
+        }
+      }
+    },
+    {
+      "Sid": "WriteOwnLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:us-east-1:__AWS_ACCOUNT_ID__:log-group:/aws/lambda/legal-llm-cpu-artifact-api:*"
+    }
+  ]
+}

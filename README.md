@@ -45,6 +45,9 @@ the registered test data: 26/40 and 22/35 requests were scorable, each group
 covering 10 of 123 reference records. Missing/invalid outputs remain in the
 all-attempts denominators. Model/adapter revisions are unknown; these subset
 scores remain separate from original experiment aggregates and new model runs.
+A [read-only artifact metadata API extension](docs/cpu-artifact-api.md) is
+prepared for cloud checks and packaging; its dataset/prompt/evaluation routes
+are not deployed yet.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 
