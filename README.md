@@ -59,8 +59,11 @@ returned the existing result; a retained failure lock rejected a different key
 with HTTP 409. The aborted workflow's exact child build was confirmed STOPPED
 and complete, then an operator conditionally released its lock while preserving
 the failed record and three-admission counter. POST submissions are currently
-disabled after all three demo admissions were used; metadata/status reads remain
-available. Full failure coverage, measured usage and infrastructure recreation
+disabled after all three demo admissions were used. A subsequent seven-check
+CloudShell regression passed: completed-run metadata, datasets, prompts,
+historical evaluation, completed/aborted submission status and unsigned metadata
+rejection. The Lambda configuration confirmed submissions remained disabled.
+Full failure coverage, measured usage and infrastructure recreation
 remain outside this verified checkpoint.
 
 This portfolio implementation includes historical experiment outputs and serving benchmarks. The original model stack requires configured AWS infrastructure and an accessible MLRun environment. The deployed CPU release uses Step Functions, CodeBuild, thin Lambdas, S3 and DynamoDB.

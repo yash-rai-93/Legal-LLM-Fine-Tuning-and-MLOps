@@ -292,3 +292,11 @@ See [deployment facts, real check results and remaining limits](cpu-submission-a
 These results establish guarded manual lock recovery; no new processing run
 was started afterward because the allowance was exhausted. Reads remain
 available, and model training/inference remain disabled.
+
+A subsequent CloudShell regression passed all seven checks: completed-run
+metadata, dataset catalog, prompt catalog and historical evaluation returned
+200; completed/aborted submission lookups returned 200 with the expected states;
+unsigned dataset access returned 403. The Lambda configuration was Successful
+and submissions remained disabled. A private JSON report retains responses.
+This verifies route availability after the submission integration and recovery;
+it does not repeat artifact-content validation or launch a new workload.

@@ -183,8 +183,14 @@ The attempted competing-key request arrived after the prior execution completed,
 so it was admitted as the second workflow. A 409 was later verified while the
 aborted workflow's reservation was retained. Simultaneous running-request
 rejection remains covered by cloud-run unit fixtures rather than a real racing
-HTTP test. Legacy metadata routes were verified at the preceding milestone;
-they were not rechecked after the submission routes were attached.
+HTTP test. A subsequent seven-check CloudShell regression passed after the
+submission routes were attached: signed completed-run metadata, datasets,
+prompts and historical evaluation returned 200; signed submission lookups
+returned 200 with COMPLETED and ABORTED respectively; unsigned dataset lookup
+returned 403. The Lambda configuration was Successful with submissions disabled.
+The private JSON report retains the individual responses. These checks establish
+HTTP availability and the two expected submission states; they do not add a
+fresh artifact-content or count/hash validation.
 
 For failure/recovery acceptance, deliberately stop one uniquely identified
 API execution during a bounded test run; do not redrive it. Require ABORTED and
@@ -307,6 +313,7 @@ other function's reservation was changed.
 | Different key while the failed reservation was retained | 409 |
 | Recovery configuration | Submissions disabled; update Successful; full 30-second invocation drain |
 | Conditional operator lock recovery | LockReleased, FailureRecordPreserved and QuotaPreserved all true; admissions used 3; private audit saved |
+| Final API regression after recovery | 7/7 passed: four signed metadata lookups 200, completed/aborted submission lookups 200 with expected states, unsigned dataset lookup 403; submissions remained disabled |
 
 The stop request against the second workflow did not establish cancellation:
 the later API/build responses were COMPLETED/SUCCEEDED. Only the third,

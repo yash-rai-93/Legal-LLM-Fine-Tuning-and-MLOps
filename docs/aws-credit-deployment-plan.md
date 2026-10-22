@@ -284,6 +284,7 @@ Do not start by running old setup/build/deployment scripts or model notebooks: t
 - [x] Hypotheses, schema and metric failure accounting are tested.
 - [x] Prediction fixtures, historical outputs and new model execution are clearly distinguished.
 - [x] Authorized submit/status, unsigned rejection, completed-key replay and retained-failure-lock blocking are verified.
+- [x] Final seven-check API regression passed after recovery with POST disabled: existing metadata, completed/aborted submission status and unsigned rejection.
 - [x] A controlled abort is observable; its exact child is STOPPED/complete and conditional manual lock release is verified.
 - [ ] A fresh workload after lock recovery and all additional failure modes are verified.
 - [ ] Real in-flight HTTP race/load and exhausted-quota HTTP 429 checks are verified.
@@ -388,6 +389,13 @@ execution's exact child was STOPPED and complete. Following disabled POST and
 a full invocation drain, a conditional transaction released only the matching
 lock. Read-back preserved the ABORTED record and counter at three, and a private
 operator audit was saved.
+
+A subsequent seven-check CloudShell regression passed: signed completed-run,
+dataset, prompt and historical-evaluation metadata returned 200; signed
+submission lookups returned 200 with COMPLETED and ABORTED as expected;
+unsigned dataset access returned 403. The Lambda configuration was Successful
+with submissions disabled, and a private JSON report retains the responses.
+These are route/status checks, not renewed artifact-content validation.
 
 No allowance was reset or replacement workload started. POST remains disabled;
 GET routes remain available. This establishes the controlled abort and manual
