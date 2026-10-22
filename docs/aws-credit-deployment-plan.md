@@ -4,7 +4,7 @@ Updated 22 October 2026. Reviewed source: `de13969e5624cfb3862762986c8197ca34892
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration awaits validation/update and an integrated smoke test; held-out split recovery and API infrastructure remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. Additional failure/recovery verification, billing measurement, held-out split recovery and API infrastructure remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 
@@ -308,6 +308,7 @@ Supplied console output confirms the CodeBuild log group has seven-day
 retention. [Run-registry source and cloud packaging checks](cpu-run-registry.md)
 passed the manual AWS build with 14 unit tests. Lambda/table deployment and
 independent real registration/idempotency checks also succeeded. The workflow
-registration update is prepared; its AWS validation, update and integrated
-smoke test remain pending. The existing
-Step Functions CPU build workflow remains unchanged.
+registration update then passed AWS validation, deployment and an integrated
+smoke test (execution `56cbb5cc-6db7-4389-a908-58009740e135`). Its output
+records a new COMPLETED run with the expected counts. Additional runtime
+negative/failure checks, billing measurement and the authenticated API remain pending.

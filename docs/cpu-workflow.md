@@ -2,8 +2,9 @@
 
 This incremental milestone wraps the existing verified CodeBuild project in
 Step Functions Standard. The registry Lambda and DynamoDB table are deployed
-and independently verified. Their workflow integration update awaits cloud
-validation/update. The API, held-out split and Terraform ownership remain pending.
+and independently verified. The integrated PrepareAndPublish -> VerifyAndRegister
+workflow has also passed a real AWS execution. The API, held-out split,
+complete failure/recovery checks and Terraform ownership remain pending.
 Do not apply the original Terraform directory. Record the resources below
 and import them deliberately before a later Terraform stack manages them.
 
@@ -40,7 +41,8 @@ source commit and S3 prefix. The build checks uploaded bytes before succeeding.
 The updated source adds VerifyAndRegister, a synchronous 90-second Lambda task.
 It passes only that metadata, verifies object checksums/provenance and records
 DynamoDB metadata. Final output is the Lambda Payload; a Lambda exception fails
-the execution. This update still awaits cloud validation and an integrated run.
+the execution. Supplied AWS output confirms this update passed definition
+validation and an integrated run with a newly created COMPLETED record.
 Workflow input cannot override commands, roles, project, bucket or source ref.
 Use `{}` as input. Execution-derived idempotency is not global admission
 control; start one execution at a time and retain build concurrency one.
@@ -195,3 +197,13 @@ counts, correct source commit and the new manifest version/run record.
 This does not recreate Lambda/DynamoDB or change their verified code package.
 The Lambda runtime/SDK remains supplied by AWS; the graph invokes its current
 unqualified function, so future Lambda code changes require separate verification.
+
+## Integrated execution evidence
+
+Supplied AWS output confirms execution `56cbb5cc-6db7-4389-a908-58009740e135`
+SUCCEEDED with no Error/Cause. Its final Lambda output identifies COMPLETED,
+created=true, run/build UUID `1605eeda-3334-4fc4-a8f3-c5c047f75994`, expected
+423 train and 61 validation documents, and live_inference=false.
+See [complete evidence](cloud-demo.md#successful-workflow-with-automatic-registration).
+The update procedure above is for recreation; do not rerun it just to
+reproduce this evidence. Further builds should be deliberate and finite.

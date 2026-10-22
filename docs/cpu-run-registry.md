@@ -1,10 +1,11 @@
 # CPU run registry: deployed and independently verified
 
-The existing Step Functions/CodeBuild/S3 workflow remains deployed and unchanged.
+The Step Functions/CodeBuild/S3 workflow is deployed and now includes registration.
 This milestone deploys a thin Lambda that records successful, verified CPU
 runs in DynamoDB. Supplied AWS output confirms first registration and an
-idempotent duplicate invocation. The Step Functions integration update is
-prepared; AWS definition validation, update and integrated smoke test remain pending.
+idempotent duplicate invocation. AWS definition validation, the workflow update
+and a real integrated smoke test also succeeded. Failure/recovery verification
+and the authenticated API are later milestones.
 
 ## What the handler verifies
 
@@ -123,4 +124,5 @@ Account-owner-supplied output confirms the following milestones:
 - Original registration time (machine UTC): `2026-10-21T23:43:13.566949+00:00`.
 
 See [workflow update instructions](cpu-workflow.md#update-the-existing-workflow-with-registration).
-The live workflow still needs this update and its first integrated verification.
+The live workflow update and first integrated verification have now succeeded;
+see [integrated evidence](cloud-demo.md#successful-workflow-with-automatic-registration).

@@ -28,8 +28,9 @@ Supplied AWS execution output confirms the [Step Functions workflow](docs/cpu-wo
 succeeded end to end: it waited for CodeBuild to complete and publish verified
 outputs to private S3. The [run-registry Lambda and DynamoDB table](docs/cpu-run-registry.md)
 are deployed and independently verified, including duplicate handling.
-The workflow registration update awaits cloud validation/deployment; the API
-remains pending. Historical experiments are separate.
+The integrated workflow has also succeeded end to end, returning a newly
+registered COMPLETED run with the expected document counts. The authenticated
+management API remains pending. Historical experiments are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

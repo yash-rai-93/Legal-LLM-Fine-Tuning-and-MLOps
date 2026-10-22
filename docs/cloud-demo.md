@@ -78,7 +78,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- AWS validation/update and an integrated smoke test of workflow registration.
+- Additional failure/recovery verification and the authenticated management API.
 - Integrated registration and failure-path verification.
 - Reproducible held-out test acquisition, pinned dependency transitive lock,
   S3 inputs/outputs and object version IDs.
@@ -153,9 +153,9 @@ This verifies the Standard workflow's synchronous CodeBuild integration and
 the build's tested preparation/publication path. The three new objects and
 their version IDs have not been separately inspected after this execution.
 The previously supplied manifest contains the expected 423/61 document counts.
-Automated workflow registration, API, held-out test recovery,
-failure/cancellation checks, billing measurement and Terraform ownership
-remain pending. Independent registry verification is recorded below. See [workflow operations](cpu-workflow.md).
+API, held-out test recovery, failure/cancellation checks, billing measurement
+and Terraform ownership remain pending. Automated registration has since
+passed the integrated verification recorded below. Independent registry verification is recorded below. See [workflow operations](cpu-workflow.md).
 
 ## Log retention and next stage
 
@@ -169,5 +169,30 @@ checksum and successful real registration of the existing CPU run. Repeating
 the invocation returned created=false and preserved the original timestamp.
 See [registry evidence](cpu-run-registry.md#verified-cloud-evidence).
 The [workflow integration update](cpu-workflow.md#update-the-existing-workflow-with-registration)
-is prepared but not yet AWS-validated or deployed. No new CPU build was needed
-for these independent Lambda registration checks.
+passed AWS validation, deployment and an integrated execution after these
+independent Lambda checks. Those independent checks reused the existing build;
+the subsequent integrated smoke test created one new finite CPU build.
+
+## Successful workflow with automatic registration
+
+Verified from supplied AWS output on 22 October 2026 (IST):
+
+- Definition validation: OK, no diagnostics; autoRetryLimit: 0.
+- Applied workflow revision: `530c5353-7eae-4548-bf9f-135d58f59f68`.
+- Execution: `56cbb5cc-6db7-4389-a908-58009740e135`, SUCCEEDED.
+- Final registry status: COMPLETED, created=true, live_inference=false.
+- Build/run UUID: `1605eeda-3334-4fc4-a8f3-c5c047f75994`.
+- Processor source: `8a1df10ea83cb9f5c476e849491cd427651c1c39`.
+- Registry source: `39d979d9fc0e40457b3ae81e9a9a3f445099fa61`.
+- Artifacts: `runs/1605eeda-3334-4fc4-a8f3-c5c047f75994/` in the chosen private bucket.
+- Counts: train 423 documents / 7191 rows; validation 61 documents / 1037 rows.
+- Manifest version: `efsfjDwxyPcvmTvJJ3UtRcJeKl88doXh`.
+- Registration time (machine UTC): `2026-10-21T23:57:13.838299+00:00`.
+- Execution Error and Cause: null.
+
+This verifies the real chain: Step Functions -> CodeBuild -> S3 -> Lambda ->
+DynamoDB. Lambda streaming checksum/provenance checks and the conditional
+registration were exercised against actual AWS resources. It demonstrates a
+CPU data workflow, not new model training/inference or model accuracy.
+Additional negative/failure/recovery checks, billing measurement, held-out
+split recovery, authenticated API and repeatable infrastructure remain pending.
