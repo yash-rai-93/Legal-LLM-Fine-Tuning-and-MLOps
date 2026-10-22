@@ -1,0 +1,25 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - python -m venv /tmp/legal-catalog-venv
+      - /tmp/legal-catalog-venv/bin/python -m pip install --no-cache-dir -r requirements_cpu.txt
+      - /tmp/legal-catalog-venv/bin/python -m pip check
+      - aws --version
+  build:
+    commands:
+      - /tmp/legal-catalog-venv/bin/python -m unittest discover -s tests/cpu -v
+      - /tmp/legal-catalog-venv/bin/python -m unittest discover -s tests/cloud -v
+      - /tmp/legal-catalog-venv/bin/python -m src.cpu.source_catalog --tracked-dir dataset_engineering/processed_parquet --output-dir /tmp/legal-cpu-catalog --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - /tmp/legal-catalog-venv/bin/python -m src.cpu.catalog_publish --input-dir /tmp/legal-cpu-catalog --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+# One manual buildspec override; keep the project's default cpu-publish.yml.
+# Downloads only the pinned official dataset (~65 MB archive including PDFs).
+# Reads three JSON members; no PDF extraction, model download or GPU invocation.
+# Uses existing runs/* S3 permissions. Does not update workflow/Lambdas/DynamoDB.

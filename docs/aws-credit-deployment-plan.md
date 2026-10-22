@@ -325,3 +325,13 @@ The full submission API requires admission control/idempotency and remains a
 subsequent stage, along with dataset/prompt endpoints and running/failed run
 tracking. This staging preserves the existing verified CPU workflow and
 creates no automatic build trigger.
+
+## Dataset/prompt implementation checkpoint
+
+Source for the next [S3 artifact catalog](cpu-artifact-catalog.md) is prepared
+on the CPU feature branch: official archive pinned by commit/blob identity,
+held-out split recovery, strict official/tracked baseline comparison, canonical
+prompt/schema and non-overwriting S3 publication. This is pending its AWS build.
+It uses the existing CodeBuild project and runs/* permissions as a one-build
+override. It does not change the live workflow's processor pin or the read-only
+status API. The catalog stage has no DynamoDB/API integration yet.

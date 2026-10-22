@@ -218,3 +218,13 @@ for a signed request for the integrated run (expected counts and artifact
 versions), 403 for an unsigned request and 404 for a valid unregistered UUID.
 The GET route uses AWS_IAM; the default stage reports a rate of 1 request/second
 and burst 2. These reads do not start builds or perform inference.
+
+## Dataset/prompt catalog preparation
+
+The next [catalog stage](cpu-artifact-catalog.md) adds pinned official-source
+recovery, a canonical prompt/schema, all-split overlap/baseline checks and
+conditional versioned S3 publication. A manual catalog-check build will run
+32 CPU and 28 cloud tests before recovery/publication. These new checks and
+the real source download remain unverified until that build succeeds.
+The existing processor/workflow, run registry and status API remain unchanged.
+No additional AWS resource, GPU or model service is required.

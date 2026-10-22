@@ -1,0 +1,24 @@
+{
+  "schema_version": "contractnli-source-v1",
+  "dataset_source": "https://stanfordnlp.github.io/contract-nli/",
+  "dataset_license": "CC BY 4.0",
+  "upstream_repository": "https://github.com/stanfordnlp/contract-nli",
+  "upstream_commit": "eced6528dd3c1d14d73f9a87df8f7bdbc03126f9",
+  "archive_url": "https://raw.githubusercontent.com/stanfordnlp/contract-nli/eced6528dd3c1d14d73f9a87df8f7bdbc03126f9/resources/contract-nli.zip",
+  "archive_bytes": 65362913,
+  "archive_git_blob_sha1": "757fd1dafd29a997fba00c60c6d40b2930a36159",
+  "split_files": {
+    "train": "train.json",
+    "validation": "dev.json",
+    "test": "test.json"
+  },
+  "expected_documents": {
+    "train": 423,
+    "validation": 61,
+    "test": 123
+  },
+  "tracked_semantic_sha256": {
+    "train": "53173d9fc7620f63d55780ba2e1a2ab8c23c0e22ab1d8580408c4a96c2850fa1",
+    "validation": "20a88115da80303c99e1db43dac0042bff92b678537f7ac86b37c3bd893f1443"
+  }
+}
