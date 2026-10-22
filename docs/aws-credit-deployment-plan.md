@@ -4,7 +4,7 @@ Updated 23 October 2026 (IST). Original audit source: `de13969e5624cfb3862762986
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. The dataset/prompt catalog subsequently passed its AWS build, recovering and registering all three official splits and the canonical prompt in versioned S3. A historical prediction replay also succeeded after 84 tests, publishing versioned reports for the benchmark subset. The catalog/evaluation metadata routes and bounded submit/status API have since been deployed. Real checks verified completed-key replay, an ABORTED execution with its exact child STOPPED/complete, retained-lock rejection and conditional manual lock release. The three-admission counter was preserved and POST left disabled. Broader failure coverage, a post-recovery processing run, infrastructure recreation and measured consumption remain unverified; billing review was skipped at the account owner's request. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. The dataset/prompt catalog subsequently passed its AWS build, recovering and registering all three official splits and the canonical prompt in versioned S3. A historical prediction replay also succeeded after 84 tests, publishing versioned reports for the benchmark subset. The catalog/evaluation metadata routes and bounded submit/status API have since been deployed. Real checks verified completed-key replay, an ABORTED execution with its exact child STOPPED/complete, retained-lock rejection and conditional manual lock release. The three-admission counter was preserved and POST left disabled. A final seven-check API regression passed, and three CPU alarms were deployed with a matching synthetic workflow-alarm email received by the operator. Broader failure coverage, a post-recovery processing run, infrastructure recreation and measured consumption remain unverified; billing review was skipped at the account owner's request. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 
@@ -55,7 +55,8 @@ Completion: verified plan/balance/expiry, supported service list and one region.
 | Lambda | Lightweight validators, registration and API handlers | Thin ZIP packages, finite timeout and request limits |
 | Step Functions Standard | Execute and track CPU jobs | Manual trigger first; finite retries and execution timeout |
 | DynamoDB | Run status and artifact index | On-demand capacity; large content stays in S3 |
-| CloudWatch | Logs and operational alarms | Short retention and few actionable metrics |
+| CloudWatch | Logs and operational alarms | Seven-day project log retention; three standard-resolution CPU alarms |
+| SNS | CPU alarm email delivery | Dedicated standard topic; exact alarm-source policy and confirmed operator subscription |
 | IAM | Scoped deployment and runtime roles | No credentials in code; runtime roles cannot launch GPU infrastructure |
 | API Gateway HTTP API | Submit/status and artifact metadata | Add after console workflow passes; IAM authorization and low throttles |
 
@@ -286,6 +287,7 @@ Do not start by running old setup/build/deployment scripts or model notebooks: t
 - [x] Authorized submit/status, unsigned rejection, completed-key replay and retained-failure-lock blocking are verified.
 - [x] Final seven-check API regression passed after recovery with POST disabled: existing metadata, completed/aborted submission status and unsigned rejection.
 - [x] A controlled abort is observable; its exact child is STOPPED/complete and conditional manual lock release is verified.
+- [x] Three CPU alarms match reviewed configuration; a synthetic workflow-alarm SNS notification reached the confirmed operator email, and the tested alarm returned to OK.
 - [ ] A fresh workload after lock recovery and all additional failure modes are verified.
 - [ ] Real in-flight HTTP race/load and exhausted-quota HTTP 429 checks are verified.
 - [ ] Consumption and cleanup/recreation have been verified.
@@ -400,17 +402,32 @@ These are route/status checks, not renewed artifact-content validation.
 No allowance was reset or replacement workload started. POST remains disabled;
 GET routes remain available. This establishes the controlled abort and manual
 lock recovery, not a fresh post-recovery processing run, every failure mode,
-real racing HTTP rejection/load, actual HTTP 429 after lock release, alarm
-delivery, measured billing or full resource recreation/Terraform ownership.
+real racing HTTP rejection/load, actual HTTP 429 after lock release, measured
+billing or full resource recreation/Terraform ownership. The subsequent
+[monitoring checkpoint](#monitoring-deployment-and-delivery-checkpoint) verifies
+one synthetic alarm notification path.
 The original GPU/MLRun deployment remains outside this CPU release.
 
-## Monitoring preparation checkpoint
+## Monitoring deployment and delivery checkpoint
 
-A subsequent read-only inventory supplied by the account owner found no matching
-project alarms and confirmed seven-day retention on all four CPU Lambda log
-groups and the CPU CodeBuild log group. [CPU monitoring](cpu-monitoring.md)
-now has prepared alarm/SNS policy templates and a CloudShell read-only preflight.
-Three proposed alarms cover workflow failures/timeouts/aborts, four-function
-Lambda errors and API server errors. Actual topic/alarm deployment, subscription
-confirmation and notification delivery remain unverified. POST stays disabled;
-monitoring does not reset the three-admission allowance.
+The initial inventory found no matching project alarms and confirmed seven-day
+retention on all four CPU Lambda log groups and the CPU CodeBuild log group.
+[CPU monitoring](cpu-monitoring.md#verified-cloud-evidence) has since passed
+read-only preflight, dedicated SNS topic/scoped-policy verification, confirmed
+email subscription, deployment of three alarms and exact configuration read-back.
+All three alarms were OK. Their signals cover workflow failures/timeouts/aborts,
+four-function Lambda Errors and HTTP API server errors.
+
+One synthetic workflow-alarm state transition was accepted. CloudWatch history
+reported successful execution of its exact SNS action; the account owner
+supplied the matching email, and the tested alarm returned to OK. Private audits
+retain the deployment and test details. A repeat invocation stopped on its audit
+guard; history inspection established the existing successful request without
+another notification test. SDK timestamps were serialized when repairing the
+private deployment audit, without repeating alarm creation.
+
+This verifies one synthetic alarm-to-SNS-to-email delivery path, not a real
+workload threshold or individual delivery tests for all three alarms. No extra
+CPU admission or processing run was used. POST stays disabled, the three-
+admission allowance remains consumed, and wider failure/race coverage, measured
+billing, infrastructure recreation and Terraform ownership remain open.

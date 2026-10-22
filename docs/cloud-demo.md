@@ -85,7 +85,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 - Additional failure modes, post-recovery workload execution and full resource cleanup/recreation.
 - Real in-flight HTTP race/load checks and HTTP 429 after quota exhaustion.
-- Full dependency locking; deployment and notification acceptance for the [prepared CPU monitoring configuration](cpu-monitoring.md).
+- Full dependency locking and broader failure/alert coverage beyond the [verified synthetic notification path](cpu-monitoring.md#verified-cloud-evidence).
 - Isolated Terraform ownership/import of the manually deployed CPU resources.
 - Live throttle/load tests and measured billing/credit consumption.
 - Integration of the pure transformation into the existing MLRun wrapper.
@@ -300,3 +300,22 @@ unsigned dataset access returned 403. The Lambda configuration was Successful
 and submissions remained disabled. A private JSON report retains responses.
 This verifies route availability after the submission integration and recovery;
 it does not repeat artifact-content validation or launch a new workload.
+
+## Verified monitoring and email delivery
+
+All five inspected project log groups have seven-day retention. The dedicated
+SNS topic and three CPU alarms are deployed; read-back matched every reviewed
+field, and all three alarms were OK. The selected email subscription was
+confirmed before alarm deployment.
+
+A synthetic transition of the workflow-failure alarm produced a successful
+CloudWatch SNS action and a matching email received by the account owner. The
+tested alarm returned to OK with actions enabled. A repeat invocation stopped
+on its existing audit guard; read-only inspection verified the accepted test
+rather than sending another notification. Private deployment/test audits retain
+the details. No processing workflow, extra admission or model call was started.
+
+See [CPU monitoring evidence and limits](cpu-monitoring.md#verified-cloud-evidence).
+This verifies the configured alarms and one synthetic notification path; real
+fault-threshold tests, the other two alarms' individual delivery paths and full
+infrastructure recreation remain separate checks.

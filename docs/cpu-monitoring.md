@@ -1,13 +1,17 @@
-# CPU monitoring: prepared configuration
+# CPU monitoring: deployed alarms and verified email delivery
 
-The account owner supplied a read-only inventory showing no matching project
-alarms. All five inspected project log groups already have seven-day retention:
-the registration, status, artifact and submission Lambdas, and CPU CodeBuild.
-Retain these settings.
+The initial read-only inventory showed no matching project alarms and seven-day
+retention on all five inspected project log groups: the registration, status,
+artifact and submission Lambdas, and CPU CodeBuild. Three alarms and their
+dedicated SNS topic have since been deployed. Read-back matched every reviewed
+configuration field, the email subscription was confirmed, and one synthetic
+workflow-alarm transition reached the operator's inbox. The tested alarm returned
+to OK. See [verified cloud evidence](#verified-cloud-evidence).
 
-This monitoring configuration is prepared, not yet cloud deployed or delivery
-verified. The seven-check API regression passed with submissions disabled.
-All three workload admissions remain used; monitoring does not replenish them.
+The seven-check API regression passed with submissions disabled. The monitoring
+preflight again verified disabled submissions; this stage changed no CPU runtime
+configuration and started no processing. All three workload admissions remain
+used; monitoring does not replenish them.
 
 ## Three alarms
 
@@ -23,10 +27,8 @@ to the dedicated standard SNS topic `legal-llm-cpu-alerts`. There are no job
 start, recovery, Lambda, scaling, OK or insufficient-data actions. The SNS topic
 policy permits CloudWatch publish only from the three exact alarm ARNs in the
 same account. Account administration uses an explicit list of supported SNS
-topic-policy actions on this topic. SNS topic policies do not accept the
-`sns:*` wildcard supplied in the first prepared revision. The first real
-CreateTopic attempt rejected that policy before the subscription call; topic,
-alarm deployment and delivery still require successful AWS verification.
+topic-policy actions on this topic. The preflight rejects unsupported or wildcard
+actions before rendering a deployment request.
 
 The workflow alarm uses the base ARN dimension, which covers executions started
 through the published version. No version-specific metric is added to the sum.
@@ -89,9 +91,47 @@ private; do not commit rendered configuration.
    A synthetic state change tests the notification path; it does not establish
    that a real workload fault crossed the metric threshold.
 
-Deployment, confirmed subscription, exact alarm read-back and delivered test
-notification remain pending until actual AWS evidence is supplied. Do not label
-this monitoring milestone complete based on generated configuration.
+These deployment and synthetic-delivery steps have now passed with the evidence
+below. Before repeating a delivery test, inspect its existing private audit and
+action history. A saved PREPARED record can represent an uncertain request; do
+not delete the record or blindly send another test. The deployed metric alarm
+should return to its evaluated state naturally rather than being forced to OK.
+
+Private JSON audits that include SDK alarm/history responses must serialize AWS
+datetime values, for example with `json.dumps(..., default=str)`. An audit-write
+failure does not undo earlier alarm creation or state-change calls. Inspect AWS
+read-back/history and repair the audit without repeating those mutations.
+
+## Verified cloud evidence
+
+Recorded 23 October 2026 (IST), from account-owner-supplied CloudShell output
+and the matching received AWS notification email. Administration ran in
+CloudShell; no laptop application/test execution or new CPU processing was used.
+
+| Check | Observed result |
+| --- | --- |
+| Log retention | All four CPU Lambda groups and the CPU CodeBuild group: seven days |
+| Monitoring preflight | PASSED; three alarms/eight underlying metrics; submissions disabled |
+| SNS topic | Created successfully; exact scoped policy matched the rendered request |
+| Email subscription | Confirmed before alarm deployment |
+| Alarm read-back | All three visible; every reviewed field matched; each state OK |
+| Deployment audit | Saved privately after timestamp serialization was corrected |
+| Synthetic workflow-alarm test | Request ACCEPTED; unique synthetic reason recorded privately |
+| CloudWatch action history | Successful execution of the exact dedicated SNS topic action |
+| Operator inbox | Received the matching ALARM email with that same synthetic reason |
+| State after test | Workflow alarm OK; actions enabled |
+
+The first recorded test had already been accepted when a subsequent invocation
+stopped on its existing audit guard. Read-only history inspection verified the
+successful action; no duplicate state-change test was needed.
+
+This establishes configuration of all three alarms and one complete workflow-
+alarm-to-SNS-to-email notification path. The Lambda-error and API-server-error
+alarms were configuration-verified; they were not individually forced or driven
+by real faults. No real workload-failure threshold, missing-metric detection,
+post-recovery processing run, measured billing or infrastructure recreation is
+established by this synthetic check. Private email endpoints, subscription ARNs,
+account identifiers, test UUIDs and raw audits are excluded from public evidence.
 
 ## Retire this monitoring stage
 

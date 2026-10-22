@@ -253,9 +253,11 @@ separate cleanup decisions. Do not delete a shared workflow merely to remove
 this API stage.
 
 Low throttles, single-run admission, finite deadlines and manual invocation
-bound accidental work; they are not an account-wide billing cap. Alarm
-delivery, complete failure coverage, billing measurement and repeatable
-infrastructure ownership/recreation remain unverified.
+bound accidental work; they are not an account-wide billing cap. Three CPU
+alarms and one synthetic SNS-to-email delivery path have since been verified;
+see [monitoring evidence](cpu-monitoring.md#verified-cloud-evidence). Complete
+failure coverage, billing measurement and repeatable infrastructure ownership/
+recreation remain unverified.
 
 ## Primary references
 
@@ -325,6 +327,9 @@ termination and guarded manual lock recovery. It does not establish a new
 successful workload after recovery: all three admissions were consumed and the
 API was left disabled without resetting the counter. It also does not establish
 real HTTP 429 after lock release, in-flight HTTP race/load behavior, dependency/
-processing failure coverage, missing-output recovery, alarm delivery, measured
-billing, full infrastructure recreation or Terraform ownership. No new model
-training or live inference was performed.
+processing failure coverage, missing-output recovery, measured billing, full
+infrastructure recreation or Terraform ownership. The subsequent
+[monitoring milestone](cpu-monitoring.md#verified-cloud-evidence) separately
+verified three alarm configurations and one synthetic workflow-alarm email
+notification; it started no new processing. No new model training or live
+inference was performed.

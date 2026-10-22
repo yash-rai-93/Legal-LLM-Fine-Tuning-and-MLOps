@@ -63,14 +63,17 @@ disabled after all three demo admissions were used. A subsequent seven-check
 CloudShell regression passed: completed-run metadata, datasets, prompts,
 historical evaluation, completed/aborted submission status and unsigned metadata
 rejection. The Lambda configuration confirmed submissions remained disabled.
-Full failure coverage, measured usage and infrastructure recreation
+[CPU monitoring](docs/cpu-monitoring.md#verified-cloud-evidence) is also deployed:
+three alarm configurations matched read-back, and a synthetic workflow-alarm
+notification was confirmed in the operator's inbox before the alarm returned
+to OK. Full failure coverage, measured usage and infrastructure recreation
 remain outside this verified checkpoint.
 
 This portfolio implementation includes historical experiment outputs and serving benchmarks. The original model stack requires configured AWS infrastructure and an accessible MLRun environment. The deployed CPU release uses Step Functions, CodeBuild, thin Lambdas, S3 and DynamoDB.
 
 | Area | Current state | Evidence |
 | --- | --- | --- |
-| AWS CPU release | Deployed; submission, completed-key replay, controlled abort and conditional lock recovery verified; POST currently disabled after three admissions | [Cloud evidence](docs/cpu-submission-api.md#verified-cloud-evidence), [operating guide](docs/cloud-demo.md) |
+| AWS CPU release | Deployed; submission/replay, controlled abort, conditional lock recovery and synthetic email alert verified; POST disabled after three admissions | [Cloud evidence](docs/cpu-submission-api.md#verified-cloud-evidence), [monitoring](docs/cpu-monitoring.md#verified-cloud-evidence), [operating guide](docs/cloud-demo.md) |
 | Data preparation and registration | Implemented in scripts and notebooks | [Dataset engineering](dataset_engineering/), [registration handler](src/register_raw_dataset.py) |
 | QLoRA training and evaluation | Implemented; training curves and reported metrics included | [Training workflow](src/evaluate_train.py), [experiment details](docs/training-and-evaluation.md) |
 | Model registry and deployment | Model/adapter deployment and registry status logic are present | [Model deployment](src/deploy_model.py), [adapter deployment](src/deploy_adapter.py), [registry helpers](src/utils_model_registry.py) |
