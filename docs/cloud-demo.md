@@ -78,20 +78,20 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- Additional failure/recovery verification and the authenticated management API.
-- Integrated registration and failure-path verification.
-- Reproducible held-out test acquisition, pinned dependency transitive lock,
-  S3 inputs/outputs and object version IDs.
-- Isolated Terraform bootstrap/runtime resources, Step Functions and run index.
-- API authorization, throttling, bounded execution and cleanup verification.
-- Integration of the new pure transformation into the existing MLRun wrapper.
+- Additional failure/cancellation/orphan-job recovery and cleanup verification.
+- Bounded authenticated submission with admission control and idempotency;
+  running/failed run tracking and dataset/prompt endpoints.
+- Reproducible held-out test acquisition, prompt registration and dependency locks.
+- Isolated Terraform ownership/import of the manually deployed CPU resources.
+- Live throttle/load tests and measured billing/credit consumption.
+- Integration of the pure transformation into the existing MLRun wrapper.
 - Full legacy CI/CD repairs and model/deployment path reconfiguration.
-- GPU training/live serving and MLRun hosting, which remain outside this release.
+- GPU training/live serving and MLRun hosting, outside this release.
 
 Use the AWS CPU plan in `docs/aws-credit-deployment-plan.md` for the staged
-target. Do not run the original setup/deployment scripts as a substitute for
-this check. The manually deployed CPU workflow is operational; the API and
-complete target runtime remain pending.
+target. Do not run the original setup/deployment scripts as a substitute.
+The manual CPU workflow, automatic run registration and read-only IAM status
+API are operational; the complete management API remains a later stage.
 
 ## Next milestone: retain outputs in private S3
 
@@ -153,8 +153,8 @@ This verifies the Standard workflow's synchronous CodeBuild integration and
 the build's tested preparation/publication path. The three new objects and
 their version IDs have not been separately inspected after this execution.
 The previously supplied manifest contains the expected 423/61 document counts.
-API, held-out test recovery, failure/cancellation checks, billing measurement
-and Terraform ownership remain pending. Automated registration has since
+At that checkpoint, the API, held-out test recovery, failure/cancellation
+checks, billing measurement and Terraform ownership remained pending. Automated registration has since
 passed the integrated verification recorded below. Independent registry verification is recorded below. See [workflow operations](cpu-workflow.md).
 
 ## Log retention and next stage
@@ -195,9 +195,10 @@ DynamoDB. Lambda streaming checksum/provenance checks and the conditional
 registration were exercised against actual AWS resources. It demonstrates a
 CPU data workflow, not new model training/inference or model accuracy.
 Additional negative/failure/recovery checks, billing measurement, held-out
-split recovery, authenticated API and repeatable infrastructure remain pending.
+split recovery, submission API and repeatable infrastructure remain pending.
+The read-only status API has since passed the verification recorded below.
 
-## Provenance rejection and API preparation
+## Provenance rejection and status API verification
 
 A direct real invocation with an unapproved processor commit returned the
 expected FunctionError/ValueError, `Unapproved processor commit`, before any
@@ -206,6 +207,14 @@ and idempotency checks. Full cancellation/orphan-job recovery remains pending.
 
 The account owner again reported $100.39 estimated credits remaining; the
 summary updates approximately every 24 hours, so this is not proof that recent
-builds/invocations incurred no charges. A [read-only IAM status API](cpu-status-api.md)
-is prepared as the next stage. Its 14 new tests and the shared registry tests
-must pass in AWS before API resources are created. No API is deployed yet.
+builds/invocations incurred no charges.
+
+The [read-only IAM status API](cpu-status-api.md#verified-deployment-evidence)
+is now deployed. Its test/package build
+`legal-llm-cpu-check:0ff4be99-7647-4a6d-a6b7-97a6d2dad3da` succeeded from
+source `6113880be73a3caa8bb483473336e016c7d3fd3b`. The deployed ZIP checksum
+matches the versioned package manifest. The account owner supplied HTTP 200
+for a signed request for the integrated run (expected counts and artifact
+versions), 403 for an unsigned request and 404 for a valid unregistered UUID.
+The GET route uses AWS_IAM; the default stage reports a rate of 1 request/second
+and burst 2. These reads do not start builds or perform inference.

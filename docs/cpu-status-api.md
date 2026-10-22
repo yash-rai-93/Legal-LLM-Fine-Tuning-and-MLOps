@@ -1,4 +1,4 @@
-# Authenticated status API: source prepared, cloud checks pending
+# Authenticated status API: deployed and cloud-verified
 
 This is the first HTTP API stage: GET /runs/{run_id} returns metadata for one
 registered COMPLETED run. Processing status remains available in Step Functions.
@@ -35,14 +35,53 @@ Run one manual build using the immutable feature commit and
 buildspecs/status-api-check.yml as a one-build override. Keep the CPU project's
 default source/buildspec unchanged. The build runs all 28 cloud unit tests
 (14 registry and 14 status API tests), then publishes only the status API ZIP.
-These are injected-client fixtures; real API Gateway/IAM integration remains
-unverified until the subsequent deployment tests.
+These are injected-client fixtures. The successful cloud build and the separate
+real API Gateway/IAM checks are recorded below.
 
 The shared packager accepts an allowlisted --component status-api option.
 Its default remains registry. The deployed registry package/code are unchanged.
 Outputs go to runs/<package-build-UUID>/packages/cpu-status-api.zip and package.json.
 Both uploads are byte-verified and have recorded version IDs and hashes.
 No pip dependencies, models, infrastructure changes or GPU resources are used.
+
+## Verified deployment evidence
+
+Verified from account-owner-supplied AWS output on 22 October 2026 (IST).
+Tests and packaging ran in AWS CodeBuild; the HTTP checks ran from CloudShell.
+
+- Source: `6113880be73a3caa8bb483473336e016c7d3fd3b`.
+- Build: `legal-llm-cpu-check:0ff4be99-7647-4a6d-a6b7-97a6d2dad3da`,
+  SUCCEEDED / COMPLETED using `buildspecs/status-api-check.yml` (28 cloud tests).
+- Package: `runs/0ff4be99-7647-4a6d-a6b7-97a6d2dad3da/packages/cpu-status-api.zip`
+  in the existing private artifact bucket; 2101 bytes.
+- Package object version: `43VJ3ac5_YnN9Zs9N6Ky_gUhPVurXliN`.
+- Package SHA-256: `f16bd40d3ee37a2dc48f309358a912a44c8cba1a52a83deeca95040449d205fc`.
+- Lambda: `legal-llm-cpu-status-api`, Active / Successful, Python 3.12.
+  Reported CodeSha256 `8WvUDT7jei3EjzCTWKkSpEyMuhpSqD3uypUEBEnSBfw=`
+  matches the manifest's hex checksum after base64 conversion.
+- HTTP API: `legal-llm-cpu-status`; exact GET route confirmed with AWS_IAM.
+- Stage: `$default`, auto-deploy enabled; rate 1 request/second, burst 2,
+  detailed metrics disabled.
+- Dedicated execution role and invocation permission were created using the
+  scoped policies described below. Own log group retention was set to seven days.
+
+| Real HTTP check | Observed result |
+| --- | --- |
+| Signed GET for `1605eeda-3334-4fc4-a8f3-c5c047f75994` | 200; COMPLETED, live_inference=false; train 423 documents / 7191 rows, validation 61 documents / 1037 rows |
+| Unsigned GET for the same run | 403 |
+| Signed GET for unregistered `00000000-0000-4000-8000-000000000001` | 404 |
+
+The 200 response included the expected processor/registry commits, S3 keys,
+object version IDs, AES256 encryption, sizes and checksums. The manifest
+version was `efsfjDwxyPcvmTvJJ3UtRcJeKl88doXh`, matching the integrated
+workflow result. No processing build was started by these HTTP reads.
+
+These checks verify read-only retrieval and IAM enforcement for the tested
+requests. Load/throttle behavior, backend-failure recovery, cleanup/recreation
+and billing measurement remain unverified. POST submission, running/failed
+run tracking, dataset/prompt listing and model inference are not deployed.
+Keep account-specific API identifiers and generated policies in the private
+resource inventory.
 
 ## Runtime resources and deployment order
 

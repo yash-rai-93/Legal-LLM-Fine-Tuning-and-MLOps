@@ -30,8 +30,10 @@ outputs to private S3. The [run-registry Lambda and DynamoDB table](docs/cpu-run
 are deployed and independently verified, including duplicate handling.
 The integrated workflow has also succeeded end to end, returning a newly
 registered COMPLETED run with the expected document counts. The [authenticated
-status API](docs/cpu-status-api.md) has source/tests prepared and awaits its
-cloud check/deployment. Submission and other management routes remain pending. Historical experiments are separate.
+status API](docs/cpu-status-api.md) is deployed: signed requests returned HTTP 200
+with the expected counts and artifact versions, unsigned requests returned 403,
+and an unregistered run returned 404. Its test/package build succeeded in AWS.
+Submission and other management routes remain pending. Historical experiments are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

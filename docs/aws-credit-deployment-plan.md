@@ -4,7 +4,7 @@ Updated 22 October 2026. Reviewed source: `de13969e5624cfb3862762986c8197ca34892
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. Additional failure/recovery verification, billing measurement, held-out split recovery and API infrastructure remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. Additional failure/recovery verification, billing measurement, held-out split recovery and the full submission API remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 
@@ -290,7 +290,7 @@ Do not start by running old setup/build/deployment scripts or model notebooks: t
 
 Show one successful workflow, one rejected invalid dataset, the output manifest, an honestly labeled evaluation report and CloudWatch logs. This demonstrates cloud data/MLOps engineering; it does not establish that Hermes was trained or served by this environment.
 
-Planning estimate after account checks: approximately 2-4 working days if the required services, permissions and compatible dependencies are available. This is not a deployment guarantee. Supplied AWS logs verify the first CPU build; the account owner also confirmed S3 files and supplied the second build's matching manifest. Remaining runtime stages have not yet been verified.
+Planning estimate after account checks: approximately 2-4 working days if the required services, permissions and compatible dependencies are available. This is not a deployment guarantee. Supplied AWS logs verify the first CPU build; the account owner also confirmed S3 files and supplied the second build's matching manifest. The integrated registry workflow and read-only status API have since passed the checks documented at the current checkpoint; the remaining target stages are still pending.
 
 ## 11. Primary references
 
@@ -311,14 +311,17 @@ independent real registration/idempotency checks also succeeded. The workflow
 registration update then passed AWS validation, deployment and an integrated
 smoke test (execution `56cbb5cc-6db7-4389-a908-58009740e135`). Its output
 records a new COMPLETED run with the expected counts. Additional runtime
-negative/failure checks, billing measurement and the authenticated API remain pending.
+negative/failure checks, billing measurement and the full submission API remain pending.
+The read-only IAM status API is now deployed and passed real 200/403/404 checks.
 
-## Next HTTP milestone
+## HTTP milestone and next stage
 
-The real unapproved-source rejection check passed. The next API stage is
-GET /runs/{run_id}, restricted by AWS_IAM and a read-only DynamoDB role.
-[Source, tests and package instructions](cpu-status-api.md) are prepared;
-cloud checks and API resources remain pending. The complete submission API
-requires admission control/idempotency and remains a subsequent stage, along
-with dataset/prompt endpoints. This staging preserves the existing verified
-CPU workflow and creates no automatic build trigger.
+The real unapproved-source rejection check passed. GET /runs/{run_id} is now
+deployed with AWS_IAM and a read-only DynamoDB role. Its AWS CodeBuild
+check/package job succeeded from source `6113880be73a3caa8bb483473336e016c7d3fd3b`;
+real CloudShell HTTP checks returned 200 for a registered run, 403 without a
+signature and 404 for an unregistered UUID. See [deployment evidence](cpu-status-api.md#verified-deployment-evidence).
+The full submission API requires admission control/idempotency and remains a
+subsequent stage, along with dataset/prompt endpoints and running/failed run
+tracking. This staging preserves the existing verified CPU workflow and
+creates no automatic build trigger.
