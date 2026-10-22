@@ -1,12 +1,13 @@
 # Read-only dataset, prompt and evaluation API
 
-Status: source prepared; CodeBuild validation, deployment and live authorization
-checks remain pending. The existing run-status API remains the deployed service.
+Status: deployed and checked in AWS on 22 October 2026. The existing run-status
+API also passed its post-deployment check. Training, inference and MLRun remain
+outside this CPU deployment.
 
 ## Scope
 
-Add three AWS_IAM GET routes to the existing HTTP API through a separate thin
-Python Lambda:
+Three AWS_IAM GET routes use a separate thin Python Lambda on the existing
+HTTP API:
 
 | Route | Result |
 | --- | --- |
@@ -36,7 +37,8 @@ Create a private directory outside the repository and run:
 
 ```bash
 umask 077
-artifact_private_dir="$(mktemp -d /tmp/legal-artifact-private.XXXXXX)"
+mkdir -p "$HOME/legal-llm-deploy"
+artifact_private_dir="$(mktemp -d "$HOME/legal-llm-deploy/artifact-api.XXXXXX")"
 python3 -m src.cloud.artifact_api_config \
   --bucket "$artifact_bucket" \
   --catalog-key "$catalog_key" \
@@ -57,9 +59,15 @@ conditionally uploads the configuration to a fresh private S3 run prefix and
 verifies its readback. It prints a receipt with the configuration key, version and
 digest. No IAM, Lambda or API resources are created.
 
-CloudShell `/tmp` is temporary. The verified configuration remains in private S3.
-Retain the receipt privately; restore a private copy and re-render the policy if
-the shell session is replaced. Do not paste credentials or signed headers.
+CloudShell `/tmp` is temporary. Use a private directory under the CloudShell
+home directory for setup files, and keep the verified configuration and receipt
+in private S3. If a local copy is lost, download the exact receipt version,
+check its actual SHA-256 and encryption, then call
+`src.cloud.artifact_api_config.render_policy` with the verified configuration,
+current account ID and checked-in policy template. Keep the rendered policy
+outside Git. The deployment recovered this way after a temporary policy file
+disappeared; the initial file-existence guard stopped before creating resources.
+Do not paste credentials or signed headers.
 
 ## CodeBuild validation and package
 
@@ -127,3 +135,40 @@ not a policy to attach blindly to the Lambda role.
 Record successful evidence only after these checks. If removing this component,
 remove only its three routes, integration, invoke permissions, Lambda and role.
 Preserve the existing API, run-status route and historical artifacts.
+
+## Deployment evidence
+
+The account owner supplied the following AWS results on 22 October 2026.
+These checks exercised the deployed HTTP API from CloudShell; the assistant
+did not execute application tests or workloads on the laptop.
+
+| Check | Supplied result |
+| --- | --- |
+| Manual test/package build | SUCCEEDED / COMPLETED at source `547e1664ced458a3cab685d58988c284e7cecdc1` |
+| Downloaded ZIP | Exact S3 version, encryption and actual SHA-256 verified |
+| Packaged configuration | Actual SHA-256 matched the approved private configuration |
+| Lambda | Python 3.12; Active / Successful; deployed CodeSha256 matched the verified ZIP |
+| Runtime resources | Restricted inline policy attached; own log group configured for seven days |
+| Integration and routes | Payload 2.0; all three GET routes reported AWS_IAM and the same new integration |
+| Invocation permission | Three statements limited to the owning account, existing API and intended GET paths |
+| Signed dataset GET | HTTP 200; train 423/7191, validation 61/1037, test 123/2091; all four checks true |
+| Signed prompt GET | HTTP 200; `contract_extractor_cpu_v1`; matching artifact digest; `model_binding: null` |
+| Signed evaluation GET | HTTP 200; `historical_benchmark_replay`; expected request accounting and limitations |
+| Unsigned dataset GET | Account owner reported HTTP 403 |
+| Unknown canonical evaluation ID | Account owner reported HTTP 404 |
+| Existing signed run-status GET | HTTP 200 / COMPLETED; expected train/validation counts and provenance |
+
+The negative-check status codes above were reported by the account owner in
+text; full CLI output was supplied for the signed successful endpoint checks.
+No independent live unsigned test of the prompt/evaluation routes is claimed.
+
+Configuration contents, rendered policies, bucket/account/API identifiers,
+S3 keys and versions, package digests and build/run IDs remain private deployment
+records for this component. This public checkpoint records behavior and the
+public source commit without copying those identifiers into Git.
+
+This completes the read-only metadata API milestone. Workflow submission
+through HTTP, admission control/idempotency, running/failed run tracking,
+additional operational failure/recovery checks, and fully repeatable
+infrastructure deployment remain separate work. Historical subset replay
+does not establish new model generation or full-held-out model accuracy.

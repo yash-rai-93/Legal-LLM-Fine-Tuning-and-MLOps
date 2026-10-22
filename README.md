@@ -38,16 +38,21 @@ Submission and other management routes remain pending. The
 also passed its AWS build (32 CPU and 28 cloud tests): the official train,
 validation and held-out test splits and canonical prompt/schema are registered
 in versioned private S3. Counts are 423/61/123 documents; all split/provenance
-checks passed. This catalog is not yet integrated with the API.
+checks passed. Its dataset and prompt metadata are now available through the
+IAM-authenticated API described below.
 A [historical CPU evaluation replay](docs/cpu-historical-evaluation.md#verified-aws-replay)
 also succeeded after 84 AWS tests. It rescores saved benchmark responses against
 the registered test data: 26/40 and 22/35 requests were scorable, each group
 covering 10 of 123 reference records. Missing/invalid outputs remain in the
 all-attempts denominators. Model/adapter revisions are unknown; these subset
 scores remain separate from original experiment aggregates and new model runs.
-A [read-only artifact metadata API extension](docs/cpu-artifact-api.md) is
-prepared for cloud checks and packaging; its dataset/prompt/evaluation routes
-are not deployed yet.
+The [read-only artifact metadata API](docs/cpu-artifact-api.md#deployment-evidence)
+is deployed after a successful AWS test/package build. Supplied live responses
+confirm HTTP 200 for datasets, prompts and the historical evaluation; the
+existing run-status route still returns 200 / COMPLETED. The account owner
+reported unsigned access returning 403 and an unknown evaluation returning 404.
+AWS-specific configuration stays private and pins the two S3 manifest versions
+and checksums. Submission and additional failure/recovery work remain pending.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 
