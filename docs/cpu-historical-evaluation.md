@@ -1,9 +1,63 @@
-# Historical CPU evaluation replay: source prepared, AWS check pending
+# Historical CPU evaluation replay: verified in AWS
 
 This stage rescores existing model responses saved in the original repository.
 It generates no predictions and calls no model endpoint. It is a historical
 benchmark replay with incomplete model provenance, not a new model run or a
 controlled fine-tuning comparison.
+
+## Verified AWS replay
+
+Verified from account-owner-supplied AWS status and evaluation manifest on
+22 October 2026 (IST):
+
+- Build: `legal-llm-cpu-check:7a14af2a-39a3-42e7-8720-4b4005269d1a`,
+  SUCCEEDED / COMPLETED.
+- Evaluation source: `01e110a8999e6a333d8089635f22f0d3d3dc6ab9`.
+- Tests before replay: 56 CPU and 28 cloud tests (84 total).
+- Historical source: `de13969e5624cfb3862762986c8197ca348924e2`.
+- Manifest: `runs/7a14af2a-39a3-42e7-8720-4b4005269d1a/evaluation/evaluation.json`.
+- Created at (machine UTC): `2026-10-22T14:03:59.437374+00:00`.
+- Status: ARTIFACTS_VERIFIED; required build status: SUCCEEDED, confirmed separately.
+- Registration scope: versioned_s3_manifest; live_inference=false.
+
+| Historical group | Requests | Scored | Invalid | Missing | Unique input contracts | Matched test records |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4-client | 40 | 26 | 12 | 2 | 10 | 10 |
+| 7-client | 35 | 22 | 9 | 4 | 10 | 10 |
+
+Each group matches 10/123 reference records (8.13%); their counts do not imply
+20 distinct contracts across groups. Request accounting balances: scored +
+invalid + missing equals 40 and 35. Recorded transport failures are 2 and 4,
+separate from the additional schema/response-invalid outputs.
+
+| Historical group | Request-level all-attempts label accuracy | First-attempt-per-contract all-attempts label accuracy |
+| --- | ---: | ---: |
+| 4-client | 51.47% | 48.24% |
+| 7-client | 50.76% | 57.65% |
+
+These percentages include missing/invalid outputs as zero correct labels.
+They describe this strict replay of a small historical benchmark subset.
+They are not newly generated model results, full-held-out scores, a controlled
+comparison, or a reproduction of the earlier 77.43%/87.63% aggregates.
+Unknown model/adapter revisions and historical prompt provenance remain
+explicit in the manifest. Exact causes of invalid predictions and additional
+scored-only/evidence statistics require inspecting the full report/attempt
+artifacts; they are not inferred from this compact manifest.
+
+Both published artifacts have AES256 encryption and byte-verified versions:
+
+| Artifact | Bytes | S3 version |
+| --- | ---: | --- |
+| report.json | 34962 | `sTR5TQgWp6jRuuWPHjg.jEEoj0xDXd.K` |
+| attempts.jsonl | 357020 | `LmMeJZcgkgh7ocfanyY6uikHYn_Xl4ZB` |
+
+- Report SHA-256: `4cb4806b66bfa7f7487264a349375d1241c699753e9e3fde54c44ad843adb3da`.
+- Attempts SHA-256: `b97419e7524685e2c3bad46753edce46474f87fabb22f619138978999481636f`.
+- Reference test version/hash match the accepted catalog described below.
+
+This verifies the finite CPU evaluation/reporting path and duplicate-reference
+fix against real AWS artifacts. No model endpoint, deployed workflow, run
+registry or API was changed. Evaluation lookup through the API remains pending.
 
 ## Available source evidence
 
@@ -124,8 +178,8 @@ gold-reference validation. Ambiguity is assessed only for requested exact-text
 groups, and equivalent copies do not inflate scoring units. Conflicting
 requested gold labels or evidence still fail. Four new tests cover equivalent
 aliases, conflicting labels/evidence, unrequested conflicts and duplicate IDs.
-The next manual AWS check runs 84 tests in total; source fixes and replay
-results are not yet cloud-verified.
+The subsequent AWS check ran all 84 tests and completed the real replay,
+as recorded above.
 
 ## AWS build and outputs
 
@@ -134,13 +188,12 @@ immutable feature commit. It installs only the existing CPU requirements,
 runs 56 CPU tests (32 existing plus 24 replay tests) and the existing 28 cloud
 tests, then evaluates the historical logs and publishes verified S3 artifacts.
 
-The new fixtures test source pins, request/response parsing, exact contract
+The fixtures test source pins, request/response parsing, exact contract
 mapping, reference identity, known accuracy denominators, deterministic first
 attempt selection, malformed/missing output accounting, evidence audit,
 unknown model/prompt provenance, S3 races/read-back failures, wrong destinations
-and refusal to overwrite existing keys. The initial 80 tests passed in AWS;
-four duplicate-reference regression tests are newly prepared and still require
-AWS verification. Real historical replay metrics remain unverified.
+and refusal to overwrite existing keys. All 84 tests, including the four
+duplicate-reference regression tests, passed before the successful real replay.
 
 Outputs use `runs/<evaluation-build-UUID>/evaluation/`:
 

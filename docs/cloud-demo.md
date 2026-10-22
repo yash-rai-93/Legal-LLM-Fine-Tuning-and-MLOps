@@ -237,10 +237,10 @@ without a DynamoDB/API integration yet. The existing deployed workflow,
 registry and status API were not updated. No model was run. Billing review
 was skipped at the account owner's request; no consumption measurement is claimed.
 
-## Historical evaluation replay preparation
+## Historical evaluation replay
 
-The [CPU historical replay](cpu-historical-evaluation.md) is prepared for one
-manual evaluation-check build, using pinned checked-in request/response logs
+The [CPU historical replay](cpu-historical-evaluation.md) uses a manual
+evaluation-check build with pinned checked-in request/response logs
 and the exact accepted S3 test artifact. It reports request-level and
 deterministic first-attempt-per-document metrics, including missing/invalid
 outputs and the actual held-out subset covered. Model/adapter revision gaps
@@ -251,6 +251,16 @@ passed 52 CPU and 28 cloud tests, then stopped before publication because a
 global reference-text uniqueness guard rejected duplicate held-out texts.
 A targeted fix now preserves equivalent reference aliases, rejects conflicting
 requested annotations and reports input-contract versus matched-record counts.
-Four regression tests bring the next build to 56 CPU and 28 cloud tests.
-The fix and real replay metrics remain pending AWS verification. No live
-inference, workflow update or additional resource is required.
+The follow-up build `7a14af2a-39a3-42e7-8720-4b4005269d1a` succeeded
+from source `01e110a8999e6a333d8089635f22f0d3d3dc6ab9`, after 56 CPU and
+28 cloud tests. Its versioned evaluation manifest confirms 40 requests
+(26 scored, 12 invalid, 2 missing) and 35 requests (22 scored, 9 invalid,
+4 missing). Each group matches 10 of the 123 held-out records.
+
+Request-level all-attempts label accuracy is 51.47% and 50.76%;
+deterministic first-attempt-per-contract accuracy is 48.24% and 57.65%.
+These historical subset scores retain missing/invalid responses in their
+denominators. They are not full-held-out or newly generated model results.
+The encrypted report/attempt artifact versions and provenance limitations
+are recorded in [verified replay evidence](cpu-historical-evaluation.md#verified-aws-replay).
+The existing workflow, registry and status API were not updated.

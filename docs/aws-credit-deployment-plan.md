@@ -4,7 +4,7 @@ Updated 22 October 2026. Reviewed source: `de13969e5624cfb3862762986c8197ca34892
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. The dataset/prompt catalog subsequently passed its AWS build, recovering and registering all three official splits and the canonical prompt in versioned S3. Additional failure/recovery verification, catalog/API integration and the full submission API remain pending; billing review was skipped at the account owner's request. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. The dataset/prompt catalog subsequently passed its AWS build, recovering and registering all three official splits and the canonical prompt in versioned S3. A historical prediction replay also succeeded after 84 tests, publishing versioned reports for the benchmark subset. Additional failure/recovery verification, catalog/evaluation API integration and the full submission API remain pending; billing review was skipped at the account owner's request. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 
@@ -355,8 +355,13 @@ Immutable generating model/adapter revisions remain unknown. New source and
 20 replay unit tests passed in the initial AWS check (80 total), which then
 stopped on an overly strict global reference-text uniqueness assumption.
 A fix and four additional tests now preserve equivalent duplicate-text aliases
-while rejecting conflicting requested annotations. The next build runs 84
-tests and must verify real replay results before any metric is accepted.
+while rejecting conflicting requested annotations. The follow-up AWS build
+`7a14af2a-39a3-42e7-8720-4b4005269d1a` succeeded from source
+`01e110a8999e6a333d8089635f22f0d3d3dc6ab9`, after all 84 tests.
+Its manifest confirms 26/40 and 22/35 scorable requests, each group matching
+10/123 test records. Missing/invalid responses remain counted in the published
+all-attempts subset metrics. [Verified replay evidence](cpu-historical-evaluation.md#verified-aws-replay)
+records the scores, artifact versions and model-provenance limitations.
 
 This is a separate finite S3-report job, without API/DynamoDB registration,
 new inference calls, added IAM permissions or deployed workflow changes.
