@@ -15,6 +15,7 @@ Live inference remains disabled.
 | `GET /submissions/{run_id}` | Reads/reconciles STARTING, RUNNING, COMPLETED, FAILED, ABORTED or TIMED_OUT; never starts a workflow |
 | Repeated POST with the same key | Returns the existing submission; a bounded retry can recover an uncertain initial start using the same execution name and input |
 | Different key while a run holds admission | 409, no request queued and no new workflow started |
+| Fourth distinct admission in this deployment | 429; duplicate retries do not consume another admission |
 | Missing signature | API Gateway rejects the request with 403 |
 | Malformed or unapproved input | 400; wrong content type 415; no backend clients loaded |
 | Unknown submission | 404 |
@@ -35,8 +36,12 @@ or model accuracy are produced.
 
 Use a new on-demand STANDARD DynamoDB table `legal-llm-cpu-submissions`, string
 partition key `run_id`, no sort key/index/TTL. It stores small metadata records
-and one `control#active` row. A transaction creates both a submission and its
-global admission lock with `attribute_not_exists` conditions. Do not expire or
+and the `control#active` and `control#quota` rows. One transaction creates a
+submission, takes its global admission lock and conditionally increments a
+string-encoded admission counter. The demo permits three total distinct
+admissions, including failed or uncertain starts; duplicate retries do not
+consume another allowance. Completion releases the active lock but retains the
+counter. There is no automatic counter reset or TTL. Do not expire or
 delete request records: their retention prevents old keys from starting again
 after Step Functions' 90-day execution-name retention window.
 
@@ -44,7 +49,10 @@ The Lambda calls only a numeric published version of `legal-llm-cpu-prepare`,
 with execution name `api-<submission UUID>` and exact input `{}`. The pinned
 definition retains the already verified processor commit, small build compute,
 15-minute build/5-minute queue bounds, source/buildspec and registry task.
-CodeBuild concurrency remains one and automatic retries remain zero.
+CodeBuild concurrency remains one and automatic retries remain zero. The runtime
+checks the actual project before each start attempt: fixed source/default
+buildspec, small Linux compute, approved managed image, no privileged mode,
+concurrency one and retries zero. A failed guard retains the reservation.
 
 A start timeout or access error retains the reservation. Within five minutes
 of reservation creation the SAME key can retry that SAME execution name/input.
@@ -116,7 +124,10 @@ After cloud checks and package verification:
    `legal-llm-cpu-submission-api-role` using the supplied trust/scoped policies.
    DynamoDB transaction permissions use PutItem/DeleteItem with
    `dynamodb:EnclosingOperation=TransactWriteItems`, rather than a nonexistent
-   broad transactional action. Runtime has no S3, CodeBuild, registry-write,
+   broad transactional action. Runtime may read only the CPU project's settings
+   with BatchGetProjects; it cannot start builds directly. StartExecution uses
+   the base state-machine resource with a required StateMachineQualifier condition
+   for the exact published numeric version. Runtime has no S3, registry-write,
    StopExecution, RedriveExecution, IAM or model-service permissions.
 3. Create the Lambda from the verified ZIP object version: Python 3.12,
    `submission_api.lambda_handler`, x86_64, 128 MiB, timeout 30 seconds; set
@@ -178,6 +189,10 @@ Before releasing any failed/uncertain reservation, an operator must:
    resource/status checks pass, then deliberately submit one NEW key to verify
    recovery. Record the real results before claiming recovery is verified.
 
+Do not delete `control#quota` during recovery. If the three-admission allowance
+has been exhausted, remain disabled until an operator deliberately reviews and
+authorizes additional work. Do not reset it to make an acceptance check pass.
+
 The API cannot stop jobs or clear failed reservations itself. This favors
 retaining admission during uncertainty over launching overlapping paid jobs.
 There is no periodic recovery service or automatic failure retry.
@@ -201,6 +216,7 @@ infrastructure ownership/recreation remain unverified.
 ## Primary references
 
 - [Standard StartExecution idempotency and numeric version ARNs](https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html)
+- [Version authorization uses the base ARN and a qualifier condition](https://docs.aws.amazon.com/step-functions/latest/dg/auth-version-alias.html)
 - [Atomic DynamoDB transactions](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html)
 - [IAM permissions for transactional operations](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/transaction-apis-iam.html)
 - [Best-effort cancellation of synchronous jobs](https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html)

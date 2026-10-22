@@ -5,15 +5,17 @@ from datetime import datetime, timedelta, timezone
 import json
 import threading
 import unittest
+import uuid
 
 from src.cloud.submission_api import (
-    LOCK, SubmissionService, SubmissionStore, execution_arn, handle_request,
+    LOCK, MAX_ADMISSIONS, PROCESSOR_COMMIT, QUOTA, REGISTRY_COMMIT,
+    SubmissionService, SubmissionStore, execution_arn, handle_request, validate_runtime_project,
 )
 
 VERSION = "arn:aws:states:us-east-1:123456789012:stateMachine:legal-llm-cpu-prepare:1"
 RUN = "bc39c8af-66b7-4f1d-bc38-71870e2e52ab"
 OTHER = "1d58ebca-85c9-4e99-b1f9-ae0194de35bf"
-BUILD = "1605eeda-3334-4fc4-a8f3-c5c047f75994"
+BUILD = "00000000-0000-4000-8000-000000000003"
 NOW = datetime(2026, 10, 22, 15, 0, tzinfo=timezone.utc)
 
 
@@ -35,8 +37,13 @@ class Store:
         with self.lock:
             if item["run_id"] in self.items or LOCK in self.items:
                 raise AwsError("TransactionCanceledException")
+            count = int(self.items.get(QUOTA, {}).get("admissions", "0"))
+            if count >= MAX_ADMISSIONS:
+                from src.cloud.submission_api import RequestError
+                raise RequestError(429, "Demo submission allowance exhausted")
             self.items[item["run_id"]] = deepcopy(item)
             self.items[LOCK] = {"run_id": LOCK, "owner": item["run_id"]}
+            self.items[QUOTA] = {"run_id": QUOTA, "admissions": str(count + 1)}
             self.claims += 1
 
     def finish(self, item):
@@ -89,6 +96,9 @@ class Sfn:
         execution["output"] = json.dumps({
             "status": "COMPLETED", "operation": "data_preparation", "live_inference": False,
             "run_id": BUILD, "build_id": "legal-llm-cpu-check:" + BUILD,
+            "source_commit": PROCESSOR_COMMIT, "registry_commit": REGISTRY_COMMIT,
+            "counts": {"train": {"documents": 423, "input_rows": 7191},
+                       "validation": {"documents": 61, "input_rows": 1037}},
         })
 
 
@@ -100,7 +110,7 @@ def event(method="POST", run_id=RUN):
                            "authorizer": {"iam": {"userArn": "arn:aws:iam::123456789012:user/fixture"}}},
         "headers": {"content-type": "application/json", "idempotency-key": run_id},
         "pathParameters": {"run_id": run_id},
-        "body": '{"operation":"data_preparation"}',
+        "body": '{"operation":"data_preparation"}' if method == "POST" else None,
     }
 
 
@@ -357,18 +367,21 @@ class SubmissionTests(unittest.TestCase):
 
 
 class LowLevelStorageTests(unittest.TestCase):
-    def test_claim_emits_two_conditional_puts_in_one_transaction(self):
+    def test_claim_emits_submission_lock_and_quota_puts_in_one_transaction(self):
         class Client:
+            def get_item(self, **args):
+                return {}
             def transact_write_items(self, **args):
                 self.args = args
         client = Client()
         store = SubmissionStore(client, "fixture-table")
         store.claim({"run_id": RUN, "status": "STARTING"})
         actions = client.args["TransactItems"]
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
         for action in actions:
             self.assertEqual(action["Put"]["ConditionExpression"], "attribute_not_exists(run_id)")
         self.assertEqual(actions[1]["Put"]["Item"]["owner"], {"S": RUN})
+        self.assertEqual(actions[2]["Put"]["Item"]["admissions"], {"S": "1"})
 
     def test_success_releases_only_matching_lock_in_same_transaction(self):
         class Client:
@@ -382,6 +395,105 @@ class LowLevelStorageTests(unittest.TestCase):
         self.assertEqual(actions[1]["Delete"]["ExpressionAttributeValues"][":owner"], {"S": RUN})
         store.finish({"run_id": RUN, "status": "FAILED", "execution_arn": execution_arn(VERSION, RUN)})
         self.assertEqual(len(client.args["TransactItems"]), 1)
+
+
+class SubmissionGuardTests(unittest.TestCase):
+    """Additional guard contracts use the same stateful synthetic AWS fixtures."""
+    setUp = SubmissionTests.setUp
+    handle = SubmissionTests.handle
+
+    def test_three_sequential_admissions_exhaust_demo_without_resetting_on_success(self):
+        for ordinal in range(MAX_ADMISSIONS):
+            identifier = str(uuid.UUID(int=ordinal + 1, version=4))
+            self.assertEqual(self.handle(event(run_id=identifier))["statusCode"], 202)
+            self.sfn.terminal(identifier)
+            self.assertEqual(self.handle(event("GET", identifier))["statusCode"], 200)
+        self.assertEqual(self.handle(event(run_id=OTHER))["statusCode"], 429)
+        self.assertEqual(self.sfn.started, MAX_ADMISSIONS)
+        self.assertEqual(self.store.get(QUOTA)["admissions"], str(MAX_ADMISSIONS))
+
+    def test_duplicate_key_consumes_one_admission(self):
+        self.handle()
+        for _ in range(4):
+            self.handle()
+        self.assertEqual(self.store.get(QUOTA)["admissions"], "1")
+
+    def test_runtime_guard_failure_holds_admission_without_starting(self):
+        def failed_check():
+            raise ValueError("PRIVATE SDK MESSAGE")
+        self.service.project_checker = failed_check
+        with self.assertLogs("src.cloud.submission_api", level="ERROR"):
+            self.assertEqual(self.handle()["statusCode"], 503)
+        self.assertEqual(self.sfn.started, 0)
+        self.assertIn(LOCK, self.store.items)
+        self.service.project_checker = lambda: None
+        self.assertEqual(self.handle()["statusCode"], 202)
+        self.assertEqual(self.store.get(QUOTA)["admissions"], "1")
+
+    def test_redriven_execution_cannot_release_admission(self):
+        self.handle()
+        self.sfn.terminal(RUN)
+        self.sfn.executions[execution_arn(VERSION, RUN)]["redriveCount"] = 1
+        with self.assertLogs("src.cloud.submission_api", level="ERROR"):
+            self.assertEqual(self.handle(event("GET"))["statusCode"], 503)
+        self.assertIn(LOCK, self.store.items)
+
+    def test_wrong_processor_commit_or_counts_cannot_release_admission(self):
+        for field, value in (("source_commit", "0" * 40), ("registry_commit", "0" * 40),
+                             ("counts", {"train": {"documents": 1, "input_rows": 17}})):
+            self.setUp()
+            self.handle()
+            self.sfn.terminal(RUN)
+            execution = self.sfn.executions[execution_arn(VERSION, RUN)]
+            output = json.loads(execution["output"])
+            output[field] = value
+            execution["output"] = json.dumps(output)
+            with self.assertLogs("src.cloud.submission_api", level="ERROR"):
+                self.assertEqual(self.handle(event("GET"))["statusCode"], 503)
+            self.assertIn(LOCK, self.store.items)
+
+    def test_get_body_is_rejected_before_clients(self):
+        request = event("GET")
+        request["body"] = '{"operation":"data_preparation"}'
+        self.assertEqual(self.handle(request)["statusCode"], 400)
+        self.assertEqual(self.factory_calls, 0)
+
+
+class RuntimeProjectPolicyTests(unittest.TestCase):
+    def test_runtime_project_guard_rejects_changed_retry_source_or_compute(self):
+        project = {
+            "name": "legal-llm-cpu-check", "concurrentBuildLimit": 1, "autoRetryLimit": 0,
+            "environment": {"computeType": "BUILD_GENERAL1_SMALL", "privilegedMode": False,
+                            "type": "LINUX_CONTAINER", "image": "aws/codebuild/standard:7.0"},
+            "source": {"type": "GITHUB", "buildspec": "buildspecs/cpu-publish.yml",
+                       "location": "https://github.com/yash-rai-93/Legal-LLM-Fine-Tuning-and-MLOps"},
+        }
+        validate_runtime_project(project)
+        for section, field, value in (
+            (None, "autoRetryLimit", 1), (None, "concurrentBuildLimit", 2),
+            ("environment", "privilegedMode", True),
+            ("environment", "computeType", "BUILD_GENERAL1_LARGE"),
+            ("environment", "image", "arbitrary/image"),
+            ("source", "buildspec", "other.yml"),
+        ):
+            changed = deepcopy(project)
+            (changed if section is None else changed[section])[field] = value
+            with self.assertRaises(ValueError):
+                validate_runtime_project(changed)
+
+    def test_exhausted_low_level_quota_does_not_issue_a_transaction(self):
+        class Client:
+            writes = 0
+            def get_item(self, **_args):
+                return {"Item": {"run_id": {"S": QUOTA}, "admissions": {"S": str(MAX_ADMISSIONS)}}}
+            def transact_write_items(self, **_args):
+                self.writes += 1
+        from src.cloud.submission_api import RequestError
+        client = Client()
+        with self.assertRaises(RequestError) as caught:
+            SubmissionStore(client, "fixture-table").claim({"run_id": RUN, "status": "STARTING"})
+        self.assertEqual(caught.exception.status, 429)
+        self.assertEqual(client.writes, 0)
 
 
 if __name__ == "__main__":

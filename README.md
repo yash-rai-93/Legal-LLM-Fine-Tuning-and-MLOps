@@ -52,7 +52,10 @@ confirm HTTP 200 for datasets, prompts and the historical evaluation; the
 existing run-status route still returns 200 / COMPLETED. The account owner
 reported unsigned access returning 403 and an unknown evaluation returning 404.
 AWS-specific configuration stays private and pins the two S3 manifest versions
-and checksums. Submission and additional failure/recovery work remain pending.
+and checksums. The [bounded submission API](docs/cpu-submission-api.md) is
+prepared for cloud tests and packaging, with durable duplicate protection,
+single-run admission and a three-admission demo allowance. Its runtime deployment
+and real failure/recovery checks remain pending.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

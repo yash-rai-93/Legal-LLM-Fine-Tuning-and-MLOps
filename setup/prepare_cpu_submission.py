@@ -18,7 +18,7 @@ REPOSITORY = "https://github.com/yash-rai-93/Legal-LLM-Fine-Tuning-and-MLOps"
 def aws_json(*args):
     result = subprocess.run(
         ["aws", *args, "--region", "us-east-1", "--output", "json", "--no-cli-pager"],
-        text=True, capture_output=True, check=False,
+        text=True, capture_output=True, check=False, timeout=90,
     )
     if result.returncode:
         raise RuntimeError("Read-only AWS preflight request failed; inspect this resource in the console")
@@ -105,6 +105,7 @@ def main():
                                     ("caller-policy.template.json", "caller-policy.json")):
             body = (policy_root / source).read_text().replace("__AWS_ACCOUNT_ID__", account)
             body = body.replace("__WORKFLOW_VERSION_ARN__", arn).replace("__HTTP_API_ID__", args.api_id)
+            body = body.replace("__WORKFLOW_VERSION_NUMBER__", arn.rsplit(":", 1)[1])
             write(destination, json.loads(body))
         write("environment.disabled.json", {"Variables": {
             "HTTP_API_ID": args.api_id, "SUBMISSION_TABLE": "legal-llm-cpu-submissions",

@@ -1,4 +1,4 @@
-"""Bounded IAM CPU submissions. No S3, CodeBuild, model or deployment access.
+"""Bounded IAM CPU submissions. No S3, build-start, model or deployment access.
 
 A separate table atomically reserves a durable request and one global lock.
 Only a successful Standard execution releases that lock automatically. Failed,
@@ -13,6 +13,11 @@ import uuid
 
 SCHEMA = "contractnli-submission-v1"
 LOCK = "control#active"
+QUOTA = "control#quota"
+MAX_ADMISSIONS = 3
+PROCESSOR_COMMIT = "8a1df10ea83cb9f5c476e849491cd427651c1c39"
+REGISTRY_COMMIT = "39d979d9fc0e40457b3ae81e9a9a3f445099fa61"
+REPOSITORY = "https://github.com/yash-rai-93/Legal-LLM-Fine-Tuning-and-MLOps"
 TERMINAL = {"COMPLETED", "FAILED", "ABORTED", "TIMED_OUT"}
 VERSION_ARN = re.compile(
     r"arn:aws:states:us-east-1:[0-9]{12}:stateMachine:legal-llm-cpu-prepare:[1-9][0-9]*"
@@ -69,6 +74,8 @@ def _request(event, expected_api_id):
     if route == "GET /submissions/{run_id}":
         if method != "GET":
             raise RequestError(405, "Only GET is supported")
+        if event.get("body") not in (None, ""):
+            raise RequestError(400, "GET bodies are not supported")
         try:
             return "GET", _uuid(_mapping(event.get("pathParameters")).get("run_id"))
         except (ValueError, AttributeError):
@@ -121,6 +128,21 @@ def execution_arn(version_arn, run_id):
     return base.replace(":stateMachine:", ":execution:") + ":api-" + run_id
 
 
+def validate_runtime_project(project):
+    environment, source = project.get("environment", {}), project.get("source", {})
+    if (project.get("name") != "legal-llm-cpu-check"
+            or type(project.get("concurrentBuildLimit")) is not int or project["concurrentBuildLimit"] != 1
+            or type(project.get("autoRetryLimit")) is not int or project["autoRetryLimit"] != 0
+            or environment.get("computeType") != "BUILD_GENERAL1_SMALL"
+            or environment.get("type") != "LINUX_CONTAINER"
+            or environment.get("image") != "aws/codebuild/standard:7.0"
+            or environment.get("privilegedMode") is not False
+            or source.get("type") != "GITHUB"
+            or source.get("buildspec") != "buildspecs/cpu-publish.yml"
+            or source.get("location", "").rstrip("/").removesuffix(".git") != REPOSITORY):
+        raise ValueError("Runtime CPU project settings differ from the approved limits/source")
+
+
 def _strings(item):
     if not all(isinstance(value, str) for value in item.values()):
         raise ValueError("Submission storage accepts string metadata only")
@@ -143,12 +165,29 @@ class SubmissionStore:
         return {key: value["S"] for key, value in item.items()}
 
     def claim(self, item):
+        quota = self.get(QUOTA)
+        count = int(quota["admissions"]) if quota is not None else 0
+        if not 0 <= count <= MAX_ADMISSIONS:
+            raise ValueError("Invalid demo admission counter")
+        if count >= MAX_ADMISSIONS:
+            raise RequestError(429, "Demo submission allowance exhausted")
+        quota_put = {
+            "TableName": self.table_name,
+            "Item": _strings({"run_id": QUOTA, "admissions": str(count + 1)}),
+            "ConditionExpression": "attribute_not_exists(run_id)",
+        }
+        if quota is not None:
+            quota_put.update(
+                ConditionExpression="admissions = :expected",
+                ExpressionAttributeValues={":expected": {"S": str(count)}},
+            )
         self.client.transact_write_items(TransactItems=[
             {"Put": {"TableName": self.table_name, "Item": _strings(item),
                      "ConditionExpression": "attribute_not_exists(run_id)"}},
             {"Put": {"TableName": self.table_name,
                      "Item": _strings({"run_id": LOCK, "owner": item["run_id"]}),
                      "ConditionExpression": "attribute_not_exists(run_id)"}},
+            {"Put": quota_put},
         ])
 
     def finish(self, item):
@@ -169,10 +208,11 @@ class SubmissionStore:
 
 
 class SubmissionService:
-    def __init__(self, *, store, sfn, workflow_version_arn, now=None):
+    def __init__(self, *, store, sfn, workflow_version_arn, now=None, project_checker=None):
         execution_arn(workflow_version_arn, "00000000-0000-4000-8000-000000000001")
         self.store, self.sfn, self.workflow_version_arn = store, sfn, workflow_version_arn
         self.now = now or (lambda: datetime.now(timezone.utc))
+        self.project_checker = project_checker
 
     def _validate(self, item, run_id):
         if (item.get("schema_version") != SCHEMA or item.get("run_id") != run_id
@@ -212,7 +252,7 @@ class SubmissionService:
             return self._public(item, "RECOVERY_REQUIRED" if recovery else "STARTING", recovery=recovery)
         if (execution.get("executionArn") != item["execution_arn"]
                 or execution.get("stateMachineVersionArn") != item["workflow_version_arn"]
-                or execution.get("input") != "{}"):
+                or execution.get("input") != "{}" or execution.get("redriveCount", 0) != 0):
             raise ValueError("Execution identity mismatch")
         status = execution.get("status")
         if status == "RUNNING":
@@ -228,11 +268,18 @@ class SubmissionService:
             output = json.loads(execution.get("output", ""), object_pairs_hook=_pairs)
             if (not isinstance(output, dict) or output.get("status") != "COMPLETED"
                     or output.get("operation") != "data_preparation"
-                    or output.get("live_inference") is not False):
+                    or output.get("live_inference") is not False
+                    or output.get("source_commit") != PROCESSOR_COMMIT
+                    or output.get("registry_commit") != REGISTRY_COMMIT):
                 raise ValueError("Missing verified registration result")
             registered_id = _uuid(output.get("run_id"))
             if output.get("build_id") != "legal-llm-cpu-check:" + registered_id:
                 raise ValueError("Registration build identity mismatch")
+            for split, documents in (("train", 423), ("validation", 61)):
+                counts = output["counts"][split]
+                if (type(counts["documents"]) is not int or counts["documents"] != documents
+                        or type(counts["input_rows"]) is not int or counts["input_rows"] != 17 * documents):
+                    raise ValueError("Registration document counts differ")
             finished["registered_run_id"] = registered_id
         try:
             self.store.finish(finished)
@@ -260,6 +307,8 @@ class SubmissionService:
             raise RequestError(503, "Start requires operator recovery; reservation retained")
         # Same execution name AND exact input on every retry, including ambiguous
         # network failures. Never generate a new name or drop the reservation.
+        if self.project_checker is not None:
+            self.project_checker()
         try:
             result = self.sfn.start_execution(
                 stateMachineArn=self.workflow_version_arn,
@@ -335,10 +384,17 @@ def lambda_handler(event, _context):
 
         # No SDK automatic retries: explicit same-key recovery bounds work.
         config = Config(connect_timeout=2, read_timeout=3, retries={"total_max_attempts": 1})
+        codebuild = boto3.client("codebuild", config=config)
+        def project_checker():
+            response = codebuild.batch_get_projects(names=["legal-llm-cpu-check"])
+            if response.get("projectsNotFound") or len(response.get("projects", [])) != 1:
+                raise ValueError("CPU project unavailable")
+            validate_runtime_project(response["projects"][0])
         return SubmissionService(
             store=SubmissionStore(boto3.client("dynamodb", config=config), os.environ["SUBMISSION_TABLE"]),
             sfn=boto3.client("stepfunctions", config=config),
             workflow_version_arn=os.environ["WORKFLOW_VERSION_ARN"],
+            project_checker=project_checker,
         )
     return handle_request(
         event, expected_api_id=os.environ.get("HTTP_API_ID"), service_factory=service_factory,

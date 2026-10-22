@@ -89,6 +89,25 @@ class SubmissionSetupTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 packager.create_package("submission-api", path, approved_path="private.json")
 
+    def test_published_version_policy_requires_base_resource_and_exact_numeric_qualifier(self):
+        template = json.loads((ROOT / "infra/serverless-demo/submission-api/execution-policy.template.json")
+                              .read_text())
+        policy = json.loads(json.dumps(template).replace("__AWS_ACCOUNT_ID__", self.account)
+                            .replace("__WORKFLOW_VERSION_NUMBER__", "7"))
+        starts = [item for item in policy["Statement"] if item.get("Action") == "states:StartExecution"]
+        self.assertEqual(len(starts), 1)
+        self.assertEqual(starts[0]["Resource"],
+                         "arn:aws:states:us-east-1:123456789012:stateMachine:legal-llm-cpu-prepare")
+        self.assertEqual(starts[0]["Condition"]["ForAnyValue:StringEquals"]
+                         ["states:StateMachineQualifier"], ["7"])
+        self.assertEqual(starts[0]["Condition"]["Null"]["states:StateMachineQualifier"], "false")
+        actions = {action for item in policy["Statement"] for action in (
+            item["Action"] if isinstance(item["Action"], list) else [item["Action"]]
+        )}
+        self.assertIn("codebuild:BatchGetProjects", actions)
+        self.assertNotIn("codebuild:StartBuild", actions)
+        self.assertNotIn("states:RedriveExecution", actions)
+
 
 if __name__ == "__main__":
     unittest.main()

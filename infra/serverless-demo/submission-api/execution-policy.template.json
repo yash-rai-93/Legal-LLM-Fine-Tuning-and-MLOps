@@ -18,7 +18,17 @@
       "Sid": "StartExactPublishedCpuWorkflow",
       "Effect": "Allow",
       "Action": "states:StartExecution",
-      "Resource": "__WORKFLOW_VERSION_ARN__"
+      "Resource": "arn:aws:states:us-east-1:__AWS_ACCOUNT_ID__:stateMachine:legal-llm-cpu-prepare",
+      "Condition": {
+        "ForAnyValue:StringEquals": {"states:StateMachineQualifier": ["__WORKFLOW_VERSION_NUMBER__"]},
+        "Null": {"states:StateMachineQualifier": "false"}
+      }
+    },
+    {
+      "Sid": "VerifyOnlyCpuProjectSettings",
+      "Effect": "Allow",
+      "Action": "codebuild:BatchGetProjects",
+      "Resource": "arn:aws:codebuild:us-east-1:__AWS_ACCOUNT_ID__:project/legal-llm-cpu-check"
     },
     {
       "Sid": "ReadOnlyApiExecutionStatus",
