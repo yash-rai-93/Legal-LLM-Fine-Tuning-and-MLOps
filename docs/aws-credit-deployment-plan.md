@@ -431,3 +431,15 @@ workload threshold or individual delivery tests for all three alarms. No extra
 CPU admission or processing run was used. POST stays disabled, the three-
 admission allowance remains consumed, and wider failure/race coverage, measured
 billing, infrastructure recreation and Terraform ownership remain open.
+
+## Infrastructure adoption preparation
+
+The existing CPU infrastructure directory contains policies/templates rather
+than Terraform resource ownership. A [read-only configuration capture and
+adoption guide](cpu-infrastructure-adoption.md) is now prepared. It snapshots
+known CPU resource settings, referenced roles and saved package-manifest
+candidates privately in CloudShell. Its first real capture remains pending.
+It does not import state, create a backend, apply Terraform, start processing
+or perform cleanup. Terraform/provider configuration, package-pin recovery,
+state-ownership review, a saved import-only plan, a subsequent no-change plan,
+and isolated recreation/data-restore checks remain separate unfinished work.
