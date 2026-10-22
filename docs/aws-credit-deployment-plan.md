@@ -442,8 +442,12 @@ candidates privately in CloudShell. Its first real capture returned CAPTURED:
 four functions, two tables, six roles, six routes, five log groups and three
 alarms; no read errors or redactions, disabled submissions and no AWS/state
 changes. Only one saved local package manifest matched deployed code. A bounded
-read-only S3/producer-build recovery script is now prepared to recover and
-byte-verify all four exact deployed packages; its first execution is pending.
+read-only S3/producer-build recovery script subsequently verified all four
+exact deployed packages: six manifest candidates, four ZIPs and four successful
+producer builds, with no unmatched functions or rejected candidates. No AWS or
+Terraform state changed. A private import-map/toolchain preparation helper is
+now prepared; its first real run, generated resource configuration and the
+saved import-only plan remain pending.
 It does not import state, create a backend, apply Terraform, start processing
 or perform cleanup. Terraform/provider configuration, package-pin recovery,
 state-ownership review, a saved import-only plan, a subsequent no-change plan,

@@ -100,8 +100,66 @@ an object, starts a build or changes Terraform state.
 
 Share only the final recovery summary. If INCOMPLETE/STOPPED, resolve the reported
 gap; do not rebuild or substitute a different package merely to fill the pin.
-The first real recovery run and all four verified package pins are pending until
-AWS evidence is supplied. A successful snapshot alone does not close this gap.
+The first real recovery run has now passed: six manifest candidates, four
+functions pinned, four exact ZIP versions verified and four successful producer
+builds verified. There were no unmatched functions or rejected candidates.
+Submissions stayed disabled and no AWS resource or Terraform state changed.
+The four-package pin gap identified by the first capture is closed.
+
+## Prepare the private import map
+
+Run the preparation helper from the feature commit containing it:
+
+```bash
+python3 setup/prepare_cpu_terraform_imports.py --snapshot-dir ACTUAL_PRIVATE_SNAPSHOT_DIRECTORY
+```
+
+It verifies the original snapshot checksum, all four package pins and recovered
+ZIP bytes, then creates a new private `terraform-planning/` workspace. It makes
+no AWS calls and does not install tools or run Terraform init/plan/import/apply.
+The output is a planning scaffold, not an import-ready resource configuration.
+
+| Private file | Purpose |
+| --- | --- |
+| `versions.tf.json` | Exact Terraform 1.16.6/AWS provider 6.67.0 pins, allowed account and isolated local planning backend |
+| `imports.tf` | Existing resource addresses and provider-specific import IDs |
+| `import-targets.json` | Explicit target inventory; duplicate type/ID and address checks |
+| `deployed-package-pins.json` | Previously verified exact code references for Lambda configuration |
+| `external-dependencies.json` | Immutable workflow version, confirmed subscriptions, referenced managed-policy definitions and source authorization where present |
+| `preparation-summary.json` | Counts, toolchain version, architecture, free disk and stage status |
+
+The known CPU resources and their imported subresources are selected from the
+snapshot. IAM role policies/attachments and S3 bucket settings receive distinct
+addresses; the later generated configuration must not also manage those same
+settings through deprecated inline fields. Managed-policy definitions remain
+external references until their ownership is reviewed. Email subscriptions and
+the immutable published workflow version are recorded as external dependencies,
+not silently recreated or republished. The original `Terraform/` stack and any
+existing state files are untouched. The new local backend is only a planning
+workspace; production state storage/locking and prior ownership remain review
+decisions before adoption.
+
+The helper reports whether Terraform is already installed; it invokes only
+`terraform version -json` if found. Provider/config generation has not run at
+this point. A subsequent plan may read live resources and produce private
+generated HCL, provider locks and plan files. Keep provider downloads in an
+ephemeral data directory if CloudShell home space is limited, while retaining
+configuration, audit, lock file and any approved state durably.
+
+### Lambda import nuance to resolve before the first adoption plan
+
+AWS reports deployed code hashes but not the original S3 source location during
+Lambda import. Keep the verified bucket/key/version pins, and compare the
+provider's observed `code_sha256` to the deployed hash. The synthetic
+`source_code_hash` does not recover the missing S3 origin. The pinned provider
+treats changes to S3 source fields as code updates, so a matching ZIP hash alone
+does not guarantee an import-only plan. Resolve these non-refreshable origin
+fields explicitly before any adoption apply; do not accept a code update merely
+to make an import pass or broadly ignore live configuration/code-hash drift.
+
+Generated resource blocks must be reviewed and validated against the live
+settings. A scaffold or an import-target count is not a successful plan, state
+adoption, no-change result or recreation test.
 
 ## Build the isolated Terraform baseline after capture
 
@@ -148,5 +206,9 @@ processing admission or billing measurement is established by this snapshot.
 - [Import existing Terraform resources](https://developer.hashicorp.com/terraform/cli/import/usage)
 - [Configuration-driven imports](https://developer.hashicorp.com/terraform/language/import)
 - [First import operation should preserve existing configuration](https://developer.hashicorp.com/terraform/tutorials/state/state-import)
+- [Terraform configuration generation](https://developer.hashicorp.com/terraform/language/import/generating-configuration)
+- [Pinned Terraform release](https://github.com/hashicorp/terraform/releases/tag/v1.16.6)
+- [Pinned AWS provider release](https://github.com/hashicorp/terraform-provider-aws/releases/tag/v6.67.0)
+- [Pinned provider Lambda implementation](https://github.com/hashicorp/terraform-provider-aws/blob/v6.67.0/internal/service/lambda/function.go)
 - [Lambda configuration API](https://docs.aws.amazon.com/lambda/latest/api/API_GetFunctionConfiguration.html)
 - [CodeBuild project configuration](https://docs.aws.amazon.com/codebuild/latest/APIReference/API_BatchGetProjects.html)
