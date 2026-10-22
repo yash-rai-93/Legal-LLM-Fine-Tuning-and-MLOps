@@ -131,7 +131,14 @@ After cloud checks and package verification:
    StopExecution, RedriveExecution, IAM or model-service permissions.
 3. Create the Lambda from the verified ZIP object version: Python 3.12,
    `submission_api.lambda_handler`, x86_64, 128 MiB, timeout 30 seconds; set
-   reserved concurrency 1. Use rendered `environment.disabled.json` initially.
+   reserved concurrency 1 where the regional quota permits it. In the verified
+   account the total concurrency quota and minimum unreserved pool are both 10,
+   so AWS rejected a reservation of 1. Leave concurrency unreserved in this
+   account; the atomic DynamoDB admission lock and CodeBuild concurrency-one
+   setting still limit this API to one active workflow. Lambda invocations can
+   overlap and share regional capacity with the other functions. Retain low API
+   throttles and the finite admission allowance. Use rendered
+   `environment.disabled.json` initially.
    No Function URL, VPC, schedules or provisioned concurrency.
 4. Create a separate AWS_PROXY integration, POST invocation, payload 2.0,
    timeout 30000 ms. Create only `POST /runs` and `GET /submissions/{run_id}`
@@ -220,3 +227,30 @@ infrastructure ownership/recreation remain unverified.
 - [Atomic DynamoDB transactions](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html)
 - [IAM permissions for transactional operations](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/transaction-apis-iam.html)
 - [Best-effort cancellation of synchronous jobs](https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html)
+
+## Deployment checkpoint: 22 October 2026
+
+Account-owner-supplied AWS output confirms that the initial test/package build
+at `60b970f74812e91f8229b016ab2b7e6d2f421888` succeeded. The downloaded ZIP's
+version, AES256 encryption, 4706-byte length, checksum and exact module contents
+were verified. The submission table is ACTIVE with PAY_PER_REQUEST billing and
+string `run_id` partition key. The dedicated role and seven-day log group were
+created; the Lambda is Active/Successful with SUBMISSIONS_ENABLED=false, and
+its reported code checksum matches that initial package. Published CPU workflow
+version 1 passed the read-only preflight.
+
+The project was corrected to small compute, concurrency one, retries zero,
+15-minute build and five-minute queue limits. Lambda's regional total/unreserved
+concurrency are both 10; the reservation of one was rejected by AWS because the
+minimum unreserved pool is 10. No per-function reservation was established.
+This account uses the documented admission-lock alternative above, without a
+quota increase or changes to other functions' concurrency.
+
+The later source revision `91ac137f8cac949e32f7cb42c9e0826dec528ee1` adds the
+three-admission counter, runtime CPU project guards and correct base-ARN plus
+StateMachineQualifier authorization. These changes are not in the currently
+deployed initial package or policy. Run a fresh cloud check/package build,
+verify its exact ZIP, re-render/update the scoped role policy and update the
+Lambda while still disabled before attaching/enabling submissions. The table,
+role, workflow version and Lambda can be reused. Real submission, duplicate,
+competing-key and failure/recovery acceptance checks remain pending.
