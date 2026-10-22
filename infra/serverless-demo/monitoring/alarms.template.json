@@ -1,0 +1,199 @@
+[
+  {
+    "ActionsEnabled": true,
+    "AlarmActions": [
+      "__ALERT_TOPIC_ARN__"
+    ],
+    "OKActions": [],
+    "InsufficientDataActions": [],
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmName": "legal-llm-cpu-workflow-failures",
+    "AlarmDescription": "CPU workflow failed, timed out or aborted. Inspect exact execution and child build; retain failed admission until controlled recovery.",
+    "Threshold": 1,
+    "Metrics": [
+      {
+        "Id": "m1",
+        "MetricStat": {
+          "Metric": {
+            "Namespace": "AWS/States",
+            "MetricName": "ExecutionsFailed",
+            "Dimensions": [
+              {
+                "Name": "StateMachineArn",
+                "Value": "__STATE_MACHINE_ARN__"
+              }
+            ]
+          },
+          "Period": 300,
+          "Stat": "Sum"
+        },
+        "ReturnData": false
+      },
+      {
+        "Id": "m2",
+        "MetricStat": {
+          "Metric": {
+            "Namespace": "AWS/States",
+            "MetricName": "ExecutionsTimedOut",
+            "Dimensions": [
+              {
+                "Name": "StateMachineArn",
+                "Value": "__STATE_MACHINE_ARN__"
+              }
+            ]
+          },
+          "Period": 300,
+          "Stat": "Sum"
+        },
+        "ReturnData": false
+      },
+      {
+        "Id": "m3",
+        "MetricStat": {
+          "Metric": {
+            "Namespace": "AWS/States",
+            "MetricName": "ExecutionsAborted",
+            "Dimensions": [
+              {
+                "Name": "StateMachineArn",
+                "Value": "__STATE_MACHINE_ARN__"
+              }
+            ]
+          },
+          "Period": 300,
+          "Stat": "Sum"
+        },
+        "ReturnData": false
+      },
+      {
+        "Id": "total",
+        "Expression": "SUM(METRICS())",
+        "Label": "Failed, timed out or aborted CPU workflows",
+        "ReturnData": true
+      }
+    ]
+  },
+  {
+    "ActionsEnabled": true,
+    "AlarmActions": [
+      "__ALERT_TOPIC_ARN__"
+    ],
+    "OKActions": [],
+    "InsufficientDataActions": [],
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmName": "legal-llm-cpu-lambda-errors",
+    "AlarmDescription": "Unhandled errors across the four CPU Lambdas. Inspect the affected function log group. Handled HTTP errors are monitored separately.",
+    "Threshold": 1,
+    "Metrics": [
+      {
+        "Id": "m1",
+        "MetricStat": {
+          "Metric": {
+            "Namespace": "AWS/Lambda",
+            "MetricName": "Errors",
+            "Dimensions": [
+              {
+                "Name": "FunctionName",
+                "Value": "legal-llm-cpu-register"
+              }
+            ]
+          },
+          "Period": 300,
+          "Stat": "Sum"
+        },
+        "ReturnData": false
+      },
+      {
+        "Id": "m2",
+        "MetricStat": {
+          "Metric": {
+            "Namespace": "AWS/Lambda",
+            "MetricName": "Errors",
+            "Dimensions": [
+              {
+                "Name": "FunctionName",
+                "Value": "legal-llm-cpu-status-api"
+              }
+            ]
+          },
+          "Period": 300,
+          "Stat": "Sum"
+        },
+        "ReturnData": false
+      },
+      {
+        "Id": "m3",
+        "MetricStat": {
+          "Metric": {
+            "Namespace": "AWS/Lambda",
+            "MetricName": "Errors",
+            "Dimensions": [
+              {
+                "Name": "FunctionName",
+                "Value": "legal-llm-cpu-artifact-api"
+              }
+            ]
+          },
+          "Period": 300,
+          "Stat": "Sum"
+        },
+        "ReturnData": false
+      },
+      {
+        "Id": "m4",
+        "MetricStat": {
+          "Metric": {
+            "Namespace": "AWS/Lambda",
+            "MetricName": "Errors",
+            "Dimensions": [
+              {
+                "Name": "FunctionName",
+                "Value": "legal-llm-cpu-submission-api"
+              }
+            ]
+          },
+          "Period": 300,
+          "Stat": "Sum"
+        },
+        "ReturnData": false
+      },
+      {
+        "Id": "total",
+        "Expression": "SUM(METRICS())",
+        "Label": "CPU Lambda invocation errors",
+        "ReturnData": true
+      }
+    ]
+  },
+  {
+    "ActionsEnabled": true,
+    "AlarmActions": [
+      "__ALERT_TOPIC_ARN__"
+    ],
+    "OKActions": [],
+    "InsufficientDataActions": [],
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "TreatMissingData": "notBreaching",
+    "AlarmName": "legal-llm-cpu-api-server-errors",
+    "AlarmDescription": "At least three HTTP API 5xx responses in five minutes. Includes deliberate disabled-submission 503 responses; use GET for disabled-mode demos.",
+    "Threshold": 3,
+    "Namespace": "AWS/ApiGateway",
+    "MetricName": "5xx",
+    "Dimensions": [
+      {
+        "Name": "ApiId",
+        "Value": "__HTTP_API_ID__"
+      }
+    ],
+    "Period": 300,
+    "Statistic": "Sum"
+  }
+]

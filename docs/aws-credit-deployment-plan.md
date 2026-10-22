@@ -403,3 +403,14 @@ lock recovery, not a fresh post-recovery processing run, every failure mode,
 real racing HTTP rejection/load, actual HTTP 429 after lock release, alarm
 delivery, measured billing or full resource recreation/Terraform ownership.
 The original GPU/MLRun deployment remains outside this CPU release.
+
+## Monitoring preparation checkpoint
+
+A subsequent read-only inventory supplied by the account owner found no matching
+project alarms and confirmed seven-day retention on all four CPU Lambda log
+groups and the CPU CodeBuild log group. [CPU monitoring](cpu-monitoring.md)
+now has prepared alarm/SNS policy templates and a CloudShell read-only preflight.
+Three proposed alarms cover workflow failures/timeouts/aborts, four-function
+Lambda errors and API server errors. Actual topic/alarm deployment, subscription
+confirmation and notification delivery remain unverified. POST stays disabled;
+monitoring does not reset the three-admission allowance.

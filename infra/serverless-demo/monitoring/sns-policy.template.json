@@ -1,0 +1,35 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AccountOwner",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::__ACCOUNT_ID__:root"
+      },
+      "Action": "sns:*",
+      "Resource": "__ALERT_TOPIC_ARN__"
+    },
+    {
+      "Sid": "OnlyCpuCloudWatchAlarms",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudwatch.amazonaws.com"
+      },
+      "Action": "sns:Publish",
+      "Resource": "__ALERT_TOPIC_ARN__",
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceAccount": "__ACCOUNT_ID__"
+        },
+        "ArnEquals": {
+          "aws:SourceArn": [
+            "arn:aws:cloudwatch:us-east-1:__ACCOUNT_ID__:alarm:legal-llm-cpu-workflow-failures",
+            "arn:aws:cloudwatch:us-east-1:__ACCOUNT_ID__:alarm:legal-llm-cpu-lambda-errors",
+            "arn:aws:cloudwatch:us-east-1:__ACCOUNT_ID__:alarm:legal-llm-cpu-api-server-errors"
+          ]
+        }
+      }
+    }
+  ]
+}

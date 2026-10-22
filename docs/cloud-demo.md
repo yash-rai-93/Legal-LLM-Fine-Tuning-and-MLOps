@@ -85,7 +85,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 - Additional failure modes, post-recovery workload execution and full resource cleanup/recreation.
 - Real in-flight HTTP race/load checks and HTTP 429 after quota exhaustion.
-- Full dependency locking; a deployed alarm/notification acceptance check.
+- Full dependency locking; deployment and notification acceptance for the [prepared CPU monitoring configuration](cpu-monitoring.md).
 - Isolated Terraform ownership/import of the manually deployed CPU resources.
 - Live throttle/load tests and measured billing/credit consumption.
 - Integration of the pure transformation into the existing MLRun wrapper.
