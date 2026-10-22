@@ -1,0 +1,21 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - aws --version
+  build:
+    commands:
+      - bash -n setup/prepare_cpu_workflow.sh
+      - bash -n setup/publish_cpu_artifacts.sh
+      - python -m unittest discover -s tests/cloud -v
+      - python setup/package_registry.py --component status-api --output-dir /tmp/legal-cpu-status-api --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+# Manual one-build override. No pip/model/GPU downloads or resource creation.
+# Runs registry and status-API tests; publishes only the status-API package.
+# Existing project default buildspec and deployed registry stay unchanged.

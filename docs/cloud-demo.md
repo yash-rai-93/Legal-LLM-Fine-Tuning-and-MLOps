@@ -196,3 +196,16 @@ registration were exercised against actual AWS resources. It demonstrates a
 CPU data workflow, not new model training/inference or model accuracy.
 Additional negative/failure/recovery checks, billing measurement, held-out
 split recovery, authenticated API and repeatable infrastructure remain pending.
+
+## Provenance rejection and API preparation
+
+A direct real invocation with an unapproved processor commit returned the
+expected FunctionError/ValueError, `Unapproved processor commit`, before any
+artifact reads or run registration. This complements successful registration
+and idempotency checks. Full cancellation/orphan-job recovery remains pending.
+
+The account owner again reported $100.39 estimated credits remaining; the
+summary updates approximately every 24 hours, so this is not proof that recent
+builds/invocations incurred no charges. A [read-only IAM status API](cpu-status-api.md)
+is prepared as the next stage. Its 14 new tests and the shared registry tests
+must pass in AWS before API resources are created. No API is deployed yet.

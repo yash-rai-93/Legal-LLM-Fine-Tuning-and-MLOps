@@ -1,4 +1,4 @@
-"""Package/upload the thin registry Lambda from AWS CodeBuild only.
+"""Package/upload an allowlisted thin CPU Lambda from AWS CodeBuild only.
 
 Uses the AWS CLI and Python standard library. Creates no AWS resources.
 All uploads are scoped to the existing build role's runs/ prefix.
@@ -55,6 +55,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--component", choices=("registry", "status-api"), default="registry")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.source_commit):
         raise ValueError("An immutable package source commit is required")
@@ -73,9 +74,16 @@ def main():
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=False)
-    source = Path(__file__).resolve().parents[1] / "src/cloud/registry.py"
-    package = output_dir / "cpu-register.zip"
-    entry = zipfile.ZipInfo("registry.py", date_time=(2020, 1, 1, 0, 0, 0))
+    profiles = {
+        "registry": ("registry.py", "cpu-register.zip", "registry.lambda_handler",
+                     "contractnli-registry-package-v1", "registry_package"),
+        "status-api": ("status_api.py", "cpu-status-api.zip", "status_api.lambda_handler",
+                       "contractnli-status-api-package-v1", "status_api_package"),
+    }
+    module, filename, handler, schema, operation = profiles[args.component]
+    source = Path(__file__).resolve().parents[1] / "src/cloud" / module
+    package = output_dir / filename
+    entry = zipfile.ZipInfo(module, date_time=(2020, 1, 1, 0, 0, 0))
     entry.compress_type = zipfile.ZIP_DEFLATED
     entry.external_attr = 0o644 << 16
     with zipfile.ZipFile(package, "w") as archive:
@@ -86,10 +94,10 @@ def main():
         source_commit=args.source_commit, output_dir=output_dir,
     )
     manifest = {
-        "schema_version": "contractnli-registry-package-v1",
-        "operation": "registry_package", "live_inference": False,
+        "schema_version": schema,
+        "operation": operation, "component": args.component, "live_inference": False,
         "package_source_commit": args.source_commit, "build_id": build_id,
-        "runtime": "python3.12", "handler": "registry.lambda_handler", **metadata,
+        "runtime": "python3.12", "handler": handler, **metadata,
     }
     manifest_path = output_dir / "package.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
@@ -98,7 +106,7 @@ def main():
         source_commit=args.source_commit, output_dir=output_dir,
     )
     print(json.dumps(manifest, indent=2))
-    print("Published and byte-verified registry ZIP and package manifest.")
+    print("Published and byte-verified " + args.component + " ZIP and package manifest.")
     print("No Lambda, DynamoDB table or workflow update has been deployed.")
 
 

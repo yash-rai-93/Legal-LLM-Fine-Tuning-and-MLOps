@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadCompletedRunMetadata",
+      "Effect": "Allow",
+      "Action": "dynamodb:GetItem",
+      "Resource": "arn:aws:dynamodb:us-east-1:__AWS_ACCOUNT_ID__:table/legal-llm-cpu-runs"
+    },
+    {
+      "Sid": "WriteOwnLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:us-east-1:__AWS_ACCOUNT_ID__:log-group:/aws/lambda/legal-llm-cpu-status-api:*"
+    }
+  ]
+}

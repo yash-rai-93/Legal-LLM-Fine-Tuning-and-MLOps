@@ -312,3 +312,13 @@ registration update then passed AWS validation, deployment and an integrated
 smoke test (execution `56cbb5cc-6db7-4389-a908-58009740e135`). Its output
 records a new COMPLETED run with the expected counts. Additional runtime
 negative/failure checks, billing measurement and the authenticated API remain pending.
+
+## Next HTTP milestone
+
+The real unapproved-source rejection check passed. The next API stage is
+GET /runs/{run_id}, restricted by AWS_IAM and a read-only DynamoDB role.
+[Source, tests and package instructions](cpu-status-api.md) are prepared;
+cloud checks and API resources remain pending. The complete submission API
+requires admission control/idempotency and remains a subsequent stage, along
+with dataset/prompt endpoints. This staging preserves the existing verified
+CPU workflow and creates no automatic build trigger.
