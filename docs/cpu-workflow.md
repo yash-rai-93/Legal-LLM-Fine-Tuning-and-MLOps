@@ -207,3 +207,12 @@ created=true, run/build UUID `1605eeda-3334-4fc4-a8f3-c5c047f75994`, expected
 See [complete evidence](cloud-demo.md#successful-workflow-with-automatic-registration).
 The update procedure above is for recreation; do not rerun it just to
 reproduce this evidence. Further builds should be deliberate and finite.
+
+## Next stage: bounded submission (source only)
+
+The [submission API implementation and operating guide](cpu-submission-api.md)
+adds durable duplicate protection, single-run admission and on-demand workflow
+status reconciliation. Its cloud test/package build, runtime deployment and
+real failure/recovery acceptance remain pending. This does not change the
+verified deployed workflow or claim the submission API is live.
+

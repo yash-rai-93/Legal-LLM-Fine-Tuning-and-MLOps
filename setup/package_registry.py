@@ -14,6 +14,8 @@ import zipfile
 
 
 PROFILES = {
+    "submission-api": ("submission_api.py", "cpu-submission-api.zip", "submission_api.lambda_handler",
+                       "contractnli-submission-api-package-v1", "submission_api_package"),
     "registry": ("registry.py", "cpu-register.zip", "registry.lambda_handler",
                  "contractnli-registry-package-v1", "registry_package"),
     "status-api": ("status_api.py", "cpu-status-api.zip", "status_api.lambda_handler",
@@ -132,3 +134,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

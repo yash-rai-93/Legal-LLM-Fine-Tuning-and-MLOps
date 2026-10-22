@@ -1,0 +1,18 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - aws --version
+  build:
+    commands:
+      - python -m unittest discover -s tests/cloud -v
+      - python setup/package_registry.py --component submission-api --output-dir /tmp/legal-cpu-submission-api --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+# One manual packaging build. No deployment, workflow start, pip or model download.
+# Existing project source, default buildspec and runtime Lambdas are unchanged.

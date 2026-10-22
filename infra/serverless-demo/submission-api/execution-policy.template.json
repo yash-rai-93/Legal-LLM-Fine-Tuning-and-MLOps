@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadSubmissionReservations",
+      "Effect": "Allow",
+      "Action": "dynamodb:GetItem",
+      "Resource": "arn:aws:dynamodb:us-east-1:__AWS_ACCOUNT_ID__:table/legal-llm-cpu-submissions"
+    },
+    {
+      "Sid": "AtomicReservationAndTerminalStatusOnly",
+      "Effect": "Allow",
+      "Action": ["dynamodb:PutItem", "dynamodb:DeleteItem"],
+      "Resource": "arn:aws:dynamodb:us-east-1:__AWS_ACCOUNT_ID__:table/legal-llm-cpu-submissions",
+      "Condition": {"ForAnyValue:StringEquals": {"dynamodb:EnclosingOperation": ["TransactWriteItems"]}}
+    },
+    {
+      "Sid": "StartExactPublishedCpuWorkflow",
+      "Effect": "Allow",
+      "Action": "states:StartExecution",
+      "Resource": "__WORKFLOW_VERSION_ARN__"
+    },
+    {
+      "Sid": "ReadOnlyApiExecutionStatus",
+      "Effect": "Allow",
+      "Action": "states:DescribeExecution",
+      "Resource": "arn:aws:states:us-east-1:__AWS_ACCOUNT_ID__:execution:legal-llm-cpu-prepare:api-*"
+    },
+    {
+      "Sid": "WriteOwnLogs",
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:us-east-1:__AWS_ACCOUNT_ID__:log-group:/aws/lambda/legal-llm-cpu-submission-api:*"
+    }
+  ]
+}

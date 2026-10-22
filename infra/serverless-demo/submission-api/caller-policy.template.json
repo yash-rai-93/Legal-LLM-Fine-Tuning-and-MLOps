@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "execute-api:Invoke",
+    "Resource": [
+      "arn:aws:execute-api:us-east-1:__AWS_ACCOUNT_ID__:__HTTP_API_ID__/$default/POST/runs",
+      "arn:aws:execute-api:us-east-1:__AWS_ACCOUNT_ID__:__HTTP_API_ID__/$default/GET/submissions/*"
+    ]
+  }]
+}
