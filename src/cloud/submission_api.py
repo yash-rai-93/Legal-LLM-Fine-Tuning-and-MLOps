@@ -18,6 +18,7 @@ MAX_ADMISSIONS = 3
 PROCESSOR_COMMIT = "8a1df10ea83cb9f5c476e849491cd427651c1c39"
 REGISTRY_COMMIT = "39d979d9fc0e40457b3ae81e9a9a3f445099fa61"
 REPOSITORY = "https://github.com/yash-rai-93/Legal-LLM-Fine-Tuning-and-MLOps"
+BUILD_IMAGE = "aws/codebuild/amazonlinux-x86_64-standard:6.0"
 TERMINAL = {"COMPLETED", "FAILED", "ABORTED", "TIMED_OUT"}
 VERSION_ARN = re.compile(
     r"arn:aws:states:us-east-1:[0-9]{12}:stateMachine:legal-llm-cpu-prepare:[1-9][0-9]*"
@@ -135,7 +136,7 @@ def validate_runtime_project(project):
             or type(project.get("autoRetryLimit")) is not int or project["autoRetryLimit"] != 0
             or environment.get("computeType") != "BUILD_GENERAL1_SMALL"
             or environment.get("type") != "LINUX_CONTAINER"
-            or environment.get("image") != "aws/codebuild/standard:7.0"
+            or environment.get("image") != BUILD_IMAGE
             or environment.get("privilegedMode") is not False
             or source.get("type") != "GITHUB"
             or source.get("buildspec") != "buildspecs/cpu-publish.yml"

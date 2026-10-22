@@ -1,4 +1,4 @@
-# Bounded CPU workflow submission: source prepared, deployment pending
+# Bounded CPU workflow submission: deployment in progress
 
 This stage adds a separate thin Lambda and submission table to the existing
 IAM HTTP API. The datasets, prompts, historical evaluation and completed-build
@@ -51,7 +51,8 @@ definition retains the already verified processor commit, small build compute,
 15-minute build/5-minute queue bounds, source/buildspec and registry task.
 CodeBuild concurrency remains one and automatic retries remain zero. The runtime
 checks the actual project before each start attempt: fixed source/default
-buildspec, small Linux compute, approved managed image, no privileged mode,
+buildspec, small Linux compute, the verified managed image
+`aws/codebuild/amazonlinux-x86_64-standard:6.0`, no privileged mode,
 concurrency one and retries zero. A failed guard retains the reservation.
 
 A start timeout or access error retains the reservation. Within five minutes
@@ -101,8 +102,9 @@ the manifest privately before creating runtime resources.
 
 Run `python3 setup/prepare_cpu_submission.py --api-id ACTUAL_API_ID` in
 CloudShell. It reads the account identity, workflow, project, API and stage;
-requires the exact reviewed Standard graph/role, small compute, concurrency
-one, retry zero and low API throttles. It renders private files under
+requires the exact reviewed Standard graph/role, small Linux compute, the same
+verified managed image as the runtime guard, concurrency one, retry zero and
+low API throttles. It renders private files under
 `~/legal-llm-deploy/submission-api`, surviving CloudShell /tmp resets. The script
 does not publish, deploy, modify resources or start a build.
 
@@ -254,3 +256,22 @@ verify its exact ZIP, re-render/update the scoped role policy and update the
 Lambda while still disabled before attaching/enabling submissions. The table,
 role, workflow version and Lambda can be reused. Real submission, duplicate,
 competing-key and failure/recovery acceptance checks remain pending.
+
+### Correct the managed-image guard before connecting submissions
+
+Subsequent account-owner output confirms that the cloud test/package build at
+`e7d156ee15d28f73fa141fd9efa811db3ec2b2aa` succeeded. Its exact ZIP version,
+5709-byte size, encryption, checksum and contents were verified. The corrected
+IAM policy was applied and the Lambda updated to that package; it is
+Active/Successful with submissions still disabled.
+
+The live CodeBuild project reports `aws/codebuild/amazonlinux-x86_64-standard:6.0`,
+LINUX_CONTAINER, small compute, concurrency one and retries zero. The earlier
+runtime guard incorrectly expected `aws/codebuild/standard:7.0`, while its
+preflight did not check the image. This source change pins both guards to the
+actual managed image used by the successful builds. It adds regression cases
+for the observed project and for rejection of an image change by either guard.
+The existing project image is retained. A fresh cloud test/package build and
+verified Lambda code update are required for this correction; IAM policy,
+table and published workflow version can be reused. Submissions remain disabled
+until this package and real HTTP acceptance checks pass.

@@ -7,6 +7,8 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+from src.cloud.submission_api import validate_runtime_project
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,7 +37,8 @@ class SubmissionSetupTests(unittest.TestCase):
         self.project = {
             "name": "legal-llm-cpu-check", "concurrentBuildLimit": 1, "autoRetryLimit": 0,
             "timeoutInMinutes": 15, "queuedTimeoutInMinutes": 5,
-            "environment": {"computeType": "BUILD_GENERAL1_SMALL", "privilegedMode": False},
+            "environment": {"computeType": "BUILD_GENERAL1_SMALL", "privilegedMode": False,
+                            "type": "LINUX_CONTAINER", "image": "aws/codebuild/amazonlinux-x86_64-standard:6.0"},
             "source": {"type": "GITHUB", "location": self.prepare.REPOSITORY,
                        "buildspec": "buildspecs/cpu-publish.yml"},
         }
@@ -43,6 +46,7 @@ class SubmissionSetupTests(unittest.TestCase):
     def test_reviewed_definition_and_small_project_are_accepted(self):
         self.prepare.validate_workflow(self.description, self.definition, self.account)
         self.prepare.validate_project(self.project, self.definition)
+        validate_runtime_project(self.project)
 
     def test_workflow_drift_express_or_role_change_is_rejected(self):
         for field, value in (("type", "EXPRESS"), ("roleArn", "untrusted"), ("definition", "{}")):
@@ -58,12 +62,25 @@ class SubmissionSetupTests(unittest.TestCase):
                 self.prepare.validate_project(project, self.definition)
         for section, field, value in (("environment", "privilegedMode", True),
                                       ("environment", "computeType", "BUILD_GENERAL1_LARGE"),
+                                      ("environment", "type", "LINUX_GPU_CONTAINER"),
+                                      ("environment", "image", "aws/codebuild/standard:7.0"),
+                                      ("environment", "image", "arbitrary/image"),
                                       ("source", "location", "https://example.com"),
                                       ("source", "buildspec", "arbitrary.yml")):
             project = deepcopy(self.project)
             project[section][field] = value
             with self.assertRaises(ValueError):
                 self.prepare.validate_project(project, self.definition)
+
+    def test_preflight_and_runtime_both_reject_an_image_change(self):
+        for image in ("aws/codebuild/standard:7.0", "arbitrary/image"):
+            project = deepcopy(self.project)
+            project["environment"]["image"] = image
+            with self.subTest(image=image):
+                with self.assertRaises(ValueError):
+                    self.prepare.validate_project(project, self.definition)
+                with self.assertRaises(ValueError):
+                    validate_runtime_project(project)
 
     def test_submission_client_restricts_endpoint_and_constructs_only_fixed_body(self):
         run_id = "bc39c8af-66b7-4f1d-bc38-71870e2e52ab"

@@ -13,6 +13,7 @@ import subprocess
 PROJECT = "legal-llm-cpu-check"
 WORKFLOW = "legal-llm-cpu-prepare"
 REPOSITORY = "https://github.com/yash-rai-93/Legal-LLM-Fine-Tuning-and-MLOps"
+BUILD_IMAGE = "aws/codebuild/amazonlinux-x86_64-standard:6.0"
 
 
 def aws_json(*args):
@@ -40,8 +41,10 @@ def validate_project(project, expected):
             or not 0 < project.get("timeoutInMinutes", 0) <= 15
             or not 0 < project.get("queuedTimeoutInMinutes", 0) <= 5
             or environment.get("computeType") != "BUILD_GENERAL1_SMALL"
+            or environment.get("type") != "LINUX_CONTAINER"
+            or environment.get("image") != BUILD_IMAGE
             or environment.get("privilegedMode") is not False):
-        raise ValueError("CPU project limits must be small compute, concurrency 1, retries 0, build <=15m and queue <=5m")
+        raise ValueError("CPU project requires the approved Linux image, small compute, concurrency 1, retries 0, build <=15m and queue <=5m")
     source = project.get("source", {})
     if (source.get("type") != "GITHUB"
             or source.get("location", "").rstrip("/").removesuffix(".git") != REPOSITORY

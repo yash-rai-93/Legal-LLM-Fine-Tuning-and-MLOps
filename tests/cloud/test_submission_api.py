@@ -464,7 +464,7 @@ class RuntimeProjectPolicyTests(unittest.TestCase):
         project = {
             "name": "legal-llm-cpu-check", "concurrentBuildLimit": 1, "autoRetryLimit": 0,
             "environment": {"computeType": "BUILD_GENERAL1_SMALL", "privilegedMode": False,
-                            "type": "LINUX_CONTAINER", "image": "aws/codebuild/standard:7.0"},
+                            "type": "LINUX_CONTAINER", "image": "aws/codebuild/amazonlinux-x86_64-standard:6.0"},
             "source": {"type": "GITHUB", "buildspec": "buildspecs/cpu-publish.yml",
                        "location": "https://github.com/yash-rai-93/Legal-LLM-Fine-Tuning-and-MLOps"},
         }
@@ -474,6 +474,9 @@ class RuntimeProjectPolicyTests(unittest.TestCase):
             ("environment", "privilegedMode", True),
             ("environment", "computeType", "BUILD_GENERAL1_LARGE"),
             ("environment", "image", "arbitrary/image"),
+            ("environment", "image", "aws/codebuild/standard:7.0"),
+            ("environment", "image", "aws/codebuild/amazonlinux-x86_64-standard:5.0"),
+            ("environment", "type", "LINUX_GPU_CONTAINER"),
             ("source", "buildspec", "other.yml"),
         ):
             changed = deepcopy(project)
