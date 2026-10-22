@@ -60,6 +60,49 @@ Keep the full snapshot outside the repository. Do not paste it into chat or
 commit it: it contains private deployment configuration, IAM documents and email
 subscription endpoints. Share only the final summary JSON.
 
+## First live capture and package recovery
+
+The account owner supplied a successful first CloudShell capture: four Lambdas,
+two tables, six referenced roles, six HTTP routes, five log groups and three
+metric alarms. ReadErrors was empty, no environment variables were redacted,
+and submissions remained disabled. No AWS resource or Terraform state changed.
+Only one Lambda matched a previously saved local package manifest, so full
+package-pin recovery remains a prerequisite for the Terraform baseline.
+
+From the feature commit containing the recovery script, run:
+
+```bash
+python3 setup/recover_cpu_package_pins.py --snapshot-dir ACTUAL_PRIVATE_SNAPSHOT_DIRECTORY
+```
+
+The script verifies the snapshot hash/account and current Lambda code hashes.
+It lists only the configured bucket's `runs/` metadata, bounded to 5,000 listed
+objects and 100 package-manifest candidates. It reads only matching package
+manifest keys and selected thin ZIPs, never contract/prediction contents. It
+uses manifests whose hashes match deployed code rather than selecting the newest
+build. Each chosen candidate must have the correct component/schema, handler,
+runtime, source commit, bucket, build-scoped key and non-null object version.
+
+For each selected package, the script requires a completed successful CPU
+CodeBuild producer at that exact source commit, repository, component buildspec
+and output bucket. It reads the exact ZIP version, checks SSE-S3, byte length,
+SHA-256 against the manifest and deployed Lambda, source metadata and bounded
+ZIP contents/CRC. The artifact API's private approval JSON stays within the
+verified ZIP. Legacy registry manifests without a component field are supported
+only with the corresponding schema/operation/handler/key and all other checks.
+
+Verified ZIPs, exact manifests and a recovery audit remain under a timestamped
+private `package-recovery/` subdirectory. Only after all four packages verify
+does the script write `package-pins.json` beside the original snapshot. The
+snapshot itself is preserved. It rechecks live code hashes and disabled
+submissions before completing. It never invokes or updates a Lambda, publishes
+an object, starts a build or changes Terraform state.
+
+Share only the final recovery summary. If INCOMPLETE/STOPPED, resolve the reported
+gap; do not rebuild or substitute a different package merely to fill the pin.
+The first real recovery run and all four verified package pins are pending until
+AWS evidence is supplied. A successful snapshot alone does not close this gap.
+
 ## Build the isolated Terraform baseline after capture
 
 1. Record the ownership boundary and the new state location. Check any existing

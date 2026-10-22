@@ -438,7 +438,12 @@ The existing CPU infrastructure directory contains policies/templates rather
 than Terraform resource ownership. A [read-only configuration capture and
 adoption guide](cpu-infrastructure-adoption.md) is now prepared. It snapshots
 known CPU resource settings, referenced roles and saved package-manifest
-candidates privately in CloudShell. Its first real capture remains pending.
+candidates privately in CloudShell. Its first real capture returned CAPTURED:
+four functions, two tables, six roles, six routes, five log groups and three
+alarms; no read errors or redactions, disabled submissions and no AWS/state
+changes. Only one saved local package manifest matched deployed code. A bounded
+read-only S3/producer-build recovery script is now prepared to recover and
+byte-verify all four exact deployed packages; its first execution is pending.
 It does not import state, create a backend, apply Terraform, start processing
 or perform cleanup. Terraform/provider configuration, package-pin recovery,
 state-ownership review, a saved import-only plan, a subsequent no-change plan,
