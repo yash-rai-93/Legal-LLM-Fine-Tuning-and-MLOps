@@ -1,0 +1,24 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - python -m venv /tmp/legal-evaluation-venv
+      - /tmp/legal-evaluation-venv/bin/python -m pip install --no-cache-dir -r requirements_cpu.txt
+      - /tmp/legal-evaluation-venv/bin/python -m pip check
+      - aws --version
+  build:
+    commands:
+      - /tmp/legal-evaluation-venv/bin/python -m unittest discover -s tests/cpu -v
+      - /tmp/legal-evaluation-venv/bin/python -m unittest discover -s tests/cloud -v
+      - /tmp/legal-evaluation-venv/bin/python -m src.cpu.replay_cloud --source-commit "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+# Manual one-build override only. Reads the approved S3 test reference and
+# pinned checked-in historical logs; runs no endpoint/model generation calls.
+# Uses existing S3 runs/* permissions; creates no AWS resources or registry entries.
+# Keep the deployed workflow and CodeBuild default buildspec unchanged.

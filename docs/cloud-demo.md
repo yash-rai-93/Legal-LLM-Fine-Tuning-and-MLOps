@@ -236,3 +236,16 @@ matching prompt identity/artifact digests. Registration is an S3 manifest,
 without a DynamoDB/API integration yet. The existing deployed workflow,
 registry and status API were not updated. No model was run. Billing review
 was skipped at the account owner's request; no consumption measurement is claimed.
+
+## Historical evaluation replay preparation
+
+The [CPU historical replay](cpu-historical-evaluation.md) is prepared for one
+manual evaluation-check build, using pinned checked-in request/response logs
+and the exact accepted S3 test artifact. It reports request-level and
+deterministic first-attempt-per-document metrics, including missing/invalid
+outputs and the actual held-out subset covered. Model/adapter revision gaps
+and the distinction from the new CPU prompt remain explicit.
+
+Twenty new replay tests bring the next build to 52 CPU and 28 cloud tests.
+These new tests and real replay metrics remain pending AWS execution. No
+live inference, workflow update or additional resource is required.

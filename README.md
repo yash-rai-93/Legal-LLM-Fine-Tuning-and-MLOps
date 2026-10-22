@@ -39,7 +39,10 @@ also passed its AWS build (32 CPU and 28 cloud tests): the official train,
 validation and held-out test splits and canonical prompt/schema are registered
 in versioned private S3. Counts are 423/61/123 documents; all split/provenance
 checks passed. This catalog is not yet integrated with the API.
-Historical experiments are separate.
+A [historical CPU evaluation replay](docs/cpu-historical-evaluation.md) is now
+prepared for an AWS build using saved benchmark responses and the registered
+test references; its metrics have not yet been verified. Historical experiments
+are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 

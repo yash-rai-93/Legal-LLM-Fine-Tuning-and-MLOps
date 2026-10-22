@@ -1,0 +1,105 @@
+{
+  "schema_version": "contractnli-historical-replay-config-v1",
+  "historical_repository": "https://github.com/yash-rai-93/Legal-LLM-Fine-Tuning-and-MLOps",
+  "historical_source_commit": "de13969e5624cfb3862762986c8197ca348924e2",
+  "reference": {
+    "bucket": "yash-legal-llm-cpu-20261022",
+    "key": "runs/51eed2ff-576e-4bf4-b1d1-47203f7092a8/catalog/test.jsonl",
+    "version_id": "17oHva47lK5vvPGNkIjvCe8wbhV8LAfk",
+    "sha256": "ea4d22100296f8eb44025ddff99eb423cdff700954911aeef64d692f490def83",
+    "semantic_sha256": "c870a5f81aaa7f0a721a3de8acda8d6c9a8b0517001b6dd24003926ff68fa169",
+    "bytes": 2391518,
+    "documents": 123,
+    "hypothesis_rows": 2091,
+    "catalog_build_id": "legal-llm-cpu-check:51eed2ff-576e-4bf4-b1d1-47203f7092a8",
+    "catalog_source_commit": "056f8a4269d12d1bf321660ab1e76466aa6fecd9"
+  },
+  "groups": [
+    {
+      "name": "4_client",
+      "summary": "benchmark/benchmark_summary_4_client_test.json",
+      "requests": 40,
+      "files": [
+        {
+          "path": "benchmark/4_client_test_output/output.txt.0",
+          "bytes": 361526,
+          "git_blob_sha1": "73126d1910dfe5a8a738d65898a08b05688d066e"
+        },
+        {
+          "path": "benchmark/4_client_test_output/output.txt.1",
+          "bytes": 379746,
+          "git_blob_sha1": "bcc4129671fd7b7c085c5eb40b9e5518f10376c8"
+        },
+        {
+          "path": "benchmark/4_client_test_output/output.txt.2",
+          "bytes": 36414,
+          "git_blob_sha1": "972a48dca863de71a10928f61cbd130d702a6de0"
+        },
+        {
+          "path": "benchmark/4_client_test_output/output.txt.3",
+          "bytes": 52987,
+          "git_blob_sha1": "c21d93502b78554ff9e067607e3575a940541071"
+        },
+        {
+          "path": "benchmark/benchmark_summary_4_client_test.json",
+          "bytes": 598,
+          "git_blob_sha1": "52b4bf06f313e14c051977e359a14d21bd4cfe45"
+        }
+      ]
+    },
+    {
+      "name": "7_client",
+      "summary": "benchmark/benchmark_summary_7_client_test.json",
+      "requests": 35,
+      "files": [
+        {
+          "path": "benchmark/7_client_test_output/output.txt.0",
+          "bytes": 32323,
+          "git_blob_sha1": "88bbdf7e5c13fc7170cf1d4bc2078bbaa0bc77ba"
+        },
+        {
+          "path": "benchmark/7_client_test_output/output.txt.1",
+          "bytes": 39521,
+          "git_blob_sha1": "1bc44b36418008ac0271f1ea6d766feae1b6f9fb"
+        },
+        {
+          "path": "benchmark/7_client_test_output/output.txt.2",
+          "bytes": 176078,
+          "git_blob_sha1": "da2f4f9573cde3ce84c515c827b2336a737d9268"
+        },
+        {
+          "path": "benchmark/7_client_test_output/output.txt.3",
+          "bytes": 31917,
+          "git_blob_sha1": "18f6d7dcbbd5b496c4a193604dcb25ef72367078"
+        },
+        {
+          "path": "benchmark/7_client_test_output/output.txt.4",
+          "bytes": 186556,
+          "git_blob_sha1": "f62807beb1644fe77296c4fe2464283ffece2943"
+        },
+        {
+          "path": "benchmark/7_client_test_output/output.txt.5",
+          "bytes": 26924,
+          "git_blob_sha1": "4e6b3beab6878d64a65b098f6b2dfe2c73a8cd00"
+        },
+        {
+          "path": "benchmark/7_client_test_output/output.txt.6",
+          "bytes": 202391,
+          "git_blob_sha1": "7a312ac5717a15904d0fe93a7db1937995f2c550"
+        },
+        {
+          "path": "benchmark/benchmark_summary_7_client_test.json",
+          "bytes": 610,
+          "git_blob_sha1": "fd38b366cdff53b95a86c05f54fda501cc744bd7"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Historical outputs from the original repository; no model generated predictions in this deployment.",
+    "Immutable model and adapter revisions are unavailable; tokenizer names are not model identities.",
+    "Only contracts present in benchmark requests are scored, not the full 123-document held-out set.",
+    "The newly registered CPU prompt was not used to generate these historical responses.",
+    "No controlled baseline-versus-fine-tuned comparison or new latency benchmark is established."
+  ]
+}

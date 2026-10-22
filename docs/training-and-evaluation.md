@@ -190,6 +190,16 @@ lmi_config = {
 
 </details>
 
+## CPU historical replay status
+
+The separate [AWS CPU historical replay](cpu-historical-evaluation.md) has
+source/tests prepared, with its cloud check and metrics still pending. It
+rescores tracked benchmark response logs against the accepted held-out data.
+It does not recreate the 119/121-document evaluation runs above, generate new
+responses, verify model/adapter revisions or evaluate the newly registered
+CPU prompt. Its request-level and first-attempt metrics will be reported
+separately from these original aggregates.
+
 ## Reproducing a comparison
 
 Record model/adapter repositories and immutable revisions, dataset tags and document IDs, prompt version, preprocessing, training parameters, inference image/settings, token limits, and metric-code version.

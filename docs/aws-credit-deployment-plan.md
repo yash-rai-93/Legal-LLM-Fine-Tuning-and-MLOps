@@ -342,3 +342,17 @@ This used the existing CodeBuild project and runs/* permissions as a one-build
 override. It did not change the live workflow's processor pin or the read-only
 status API. Dataset/prompt lookup through DynamoDB/API remains a later stage.
 Billing review was skipped at the account owner's request.
+
+## Historical evaluation implementation checkpoint
+
+A [CPU replay of saved benchmark predictions](cpu-historical-evaluation.md)
+is prepared on the CPU branch. It does not reconstruct the original 119/121
+document evaluation runs: their complete predictions/provenance are not
+tracked. It uses the pinned 4/7-client logs, matches each input contract exactly
+to the accepted held-out S3 data, preserves repeated/failed request accounting
+and keeps request versus first-attempt-per-document metrics separate.
+Immutable generating model/adapter revisions remain unknown. New source and
+20 meaningful unit tests await their manual AWS evaluation-check build.
+
+This is a separate finite S3-report job, without API/DynamoDB registration,
+new inference calls, added IAM permissions or deployed workflow changes.
