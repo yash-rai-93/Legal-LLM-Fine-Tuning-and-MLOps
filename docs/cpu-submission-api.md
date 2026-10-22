@@ -1,11 +1,18 @@
-# Bounded CPU workflow submission: deployment in progress
+# Bounded CPU workflow submission: verified deployment and controlled recovery
 
 This stage adds a separate thin Lambda and submission table to the existing
 IAM HTTP API. The datasets, prompts, historical evaluation and completed-build
-status endpoints keep their existing integrations. No deployed resource is
-changed by this source commit. Tests and packaging must run in CodeBuild,
-followed by real CloudShell acceptance checks before this stage is called live.
-Live inference remains disabled.
+status endpoints keep their existing integrations. The final package passed
+its AWS CodeBuild check, and real signed CloudShell requests exercised successful
+submission, completed-key replay and a controlled abort with exact child-build
+termination and conditional lock recovery. See [verified cloud evidence](#verified-cloud-evidence).
+
+Current operating state: `SUBMISSIONS_ENABLED=false`, all three distinct demo
+admissions used, and the failed run's active lock released. The failed submission
+record and admission counter are retained. GET status/metadata routes remain
+available. New processing requires a separate deliberate allowance decision;
+merely enabling POST does not replenish the exhausted counter. Live inference
+remains disabled.
 
 ## Request and status contract
 
@@ -15,7 +22,7 @@ Live inference remains disabled.
 | `GET /submissions/{run_id}` | Reads/reconciles STARTING, RUNNING, COMPLETED, FAILED, ABORTED or TIMED_OUT; never starts a workflow |
 | Repeated POST with the same key | Returns the existing submission; a bounded retry can recover an uncertain initial start using the same execution name and input |
 | Different key while a run holds admission | 409, no request queued and no new workflow started |
-| Fourth distinct admission in this deployment | 429; duplicate retries do not consume another admission |
+| Fourth distinct admission while POST is enabled and no lock is held | 429; duplicate retries do not consume another admission; this real HTTP case remains unexercised |
 | Missing signature | API Gateway rejects the request with 403 |
 | Malformed or unapproved input | 400; wrong content type 415; no backend clients loaded |
 | Unknown submission | 404 |
@@ -171,7 +178,13 @@ same-key requests; a different key during the active run must return 409 with
 no second execution. On completion require COMPLETED, expected registered build
 ID, existing GET /runs/<build UUID> 200, and matching counts/versions. Repeat
 the completed key and require no new execution. Recheck existing metadata
-endpoints and unsigned access. These are pending real AWS checks.
+endpoints and unsigned access. The completed-key replay was exercised in AWS.
+The attempted competing-key request arrived after the prior execution completed,
+so it was admitted as the second workflow. A 409 was later verified while the
+aborted workflow's reservation was retained. Simultaneous running-request
+rejection remains covered by cloud-run unit fixtures rather than a real racing
+HTTP test. Legacy metadata routes were verified at the preceding milestone;
+they were not rechecked after the submission routes were attached.
 
 For failure/recovery acceptance, deliberately stop one uniquely identified
 API execution during a bounded test run; do not redrive it. Require ABORTED and
@@ -194,13 +207,29 @@ Before releasing any failed/uncertain reservation, an operator must:
    abandoned STARTING record, record ABORTED with a private operator audit note.
    Never delete that record or reuse its key.
 4. Delete only `control#active` with an `owner = :this_submission_id` condition.
-   Do not clear a different owner's reservation. Enable submission only after
-   resource/status checks pass, then deliberately submit one NEW key to verify
-   recovery. Record the real results before claiming recovery is verified.
+   Do not clear a different owner's reservation. Read back the absent lock,
+   unchanged terminal record and unchanged counter, and retain a private recovery
+   audit. A new post-recovery processing run is a separate acceptance check and
+   requires an available, deliberately authorized admission. Record only the
+   recovery steps actually exercised.
 
 Do not delete `control#quota` during recovery. If the three-admission allowance
 has been exhausted, remain disabled until an operator deliberately reviews and
 authorizes additional work. Do not reset it to make an acceptance check pass.
+
+The verified operator recovery used one DynamoDB transaction: condition-check
+that the exact submission is ABORTED with the expected execution ARN, condition-
+check that the admission counter is still the expected string value `3`, then
+delete only the active lock whose owner matches that submission. Consistent
+reads confirmed the lock absent and the original failure record/counter unchanged.
+A private CloudShell JSON audit records the execution, stopped child build,
+verification time and successful recovery. No quota row or request record was
+deleted, and no replacement workflow was started.
+
+The current status handler retains `recovery_required=true` on historical
+ABORTED/FAILED/TIMED_OUT responses even after manual lock release. Consult the
+operator audit and active-lock state for recovery completion; the failed attempt
+retains its original status. There is no API-level recovery acknowledgement.
 
 The API cannot stop jobs or clear failed reservations itself. This favors
 retaining admission during uncertainty over launching overlapping paid jobs.
@@ -230,48 +259,65 @@ infrastructure ownership/recreation remain unverified.
 - [IAM permissions for transactional operations](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/transaction-apis-iam.html)
 - [Best-effort cancellation of synchronous jobs](https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html)
 
-## Deployment checkpoint: 22 October 2026
+## Verified cloud evidence
 
-Account-owner-supplied AWS output confirms that the initial test/package build
-at `60b970f74812e91f8229b016ab2b7e6d2f421888` succeeded. The downloaded ZIP's
-version, AES256 encryption, 4706-byte length, checksum and exact module contents
-were verified. The submission table is ACTIVE with PAY_PER_REQUEST billing and
-string `run_id` partition key. The dedicated role and seven-day log group were
-created; the Lambda is Active/Successful with SUBMISSIONS_ENABLED=false, and
-its reported code checksum matches that initial package. Published CPU workflow
-version 1 passed the read-only preflight.
+Recorded 23 October 2026 (IST), from account-owner-supplied AWS output.
+Tests and packaging ran in CodeBuild; HTTP administration and recovery ran in
+CloudShell. No laptop application/test execution was used.
 
-The project was corrected to small compute, concurrency one, retries zero,
-15-minute build and five-minute queue limits. Lambda's regional total/unreserved
-concurrency are both 10; the reservation of one was rejected by AWS because the
-minimum unreserved pool is 10. No per-function reservation was established.
-This account uses the documented admission-lock alternative above, without a
-quota increase or changes to other functions' concurrency.
+| Deployment fact | Verified value |
+| --- | --- |
+| Final package source | `e533237a61f7c49e09d69d1e0a7f3f7629378f79` |
+| Final cloud check | SUCCEEDED / COMPLETED at that exact source commit |
+| ZIP | `submission_api.py` only; 5736 bytes; exact version, AES256, SHA-256 and ZIP integrity checked |
+| ZIP SHA-256 | `23fbc48849ec1c11efae645152438d5dc56a914ff6881f502bef3cfaf96c7016` |
+| Deployed CodeSha256 | `I/vEiEnsHBHvrmRRUkONXcVqkU/2iB9QK+88+vlscBY=`; matched the ZIP digest |
+| Lambda | Active / Successful, Python 3.12, 128 MiB, timeout 30 seconds |
+| Workflow | Published Standard workflow version 1; fixed reviewed processor and registry path |
+| Submission table | ACTIVE, PAY_PER_REQUEST, string `run_id` partition key |
+| API integration | AWS_PROXY, payload 2.0, 30000 ms; both routes created with AWS_IAM |
+| CodeBuild project | `aws/codebuild/amazonlinux-x86_64-standard:6.0`, small Linux compute, concurrency 1, retries 0, build 15 minutes, queue 5 minutes |
+| Log retention | Dedicated submission Lambda log group set to seven days |
+| Final control state | Submissions disabled, active failure lock absent, failed record preserved, admissions used 3 |
 
-The later source revision `91ac137f8cac949e32f7cb42c9e0826dec528ee1` adds the
-three-admission counter, runtime CPU project guards and correct base-ARN plus
-StateMachineQualifier authorization. These changes are not in the currently
-deployed initial package or policy. Run a fresh cloud check/package build,
-verify its exact ZIP, re-render/update the scoped role policy and update the
-Lambda while still disabled before attaching/enabling submissions. The table,
-role, workflow version and Lambda can be reused. Real submission, duplicate,
-competing-key and failure/recovery acceptance checks remain pending.
+The scoped role policy uses the base state-machine ARN and a required numeric
+StateMachineQualifier condition for StartExecution; it also permits only the
+CPU project's read-only settings check. Lambda invocation permissions are
+scoped to the exact API/account, default stage, HTTP methods and two paths.
+Account IDs, API identifiers, object versions, run/execution IDs and generated
+policies remain in the private deployment inventory.
 
-### Correct the managed-image guard before connecting submissions
+AWS reported regional total/unreserved Lambda concurrency of 10/10 and rejected
+reserved concurrency 1 because the minimum unreserved pool is 10. The deployment
+therefore uses shared Lambda capacity with transactional single-workflow
+admission, the finite counter and CodeBuild concurrency 1. No quota increase or
+other function's reservation was changed.
 
-Subsequent account-owner output confirms that the cloud test/package build at
-`e7d156ee15d28f73fa141fd9efa811db3ec2b2aa` succeeded. Its exact ZIP version,
-5709-byte size, encryption, checksum and contents were verified. The corrected
-IAM policy was applied and the Lambda updated to that package; it is
-Active/Successful with submissions still disabled.
+| Real cloud check | Observed result |
+| --- | --- |
+| Unsigned POST | Account owner reported 403 |
+| GET unknown submission | Account owner reported 404 |
+| Signed POST with submissions disabled | 503 |
+| First authorized submission | 202 / RUNNING; later COMPLETED with a registered build reference |
+| Second distinct submission | 202 after the first had completed; later COMPLETED; exact child SUCCEEDED and complete |
+| Replay of the first successful key | 200 / COMPLETED, original submission and registered-build reference |
+| Third submission and automated stop | 202 / RUNNING, followed by a stop request about six seconds after creation |
+| GET for the third submission | 200 / ABORTED, `recovery_required=true`, original terminal timestamp |
+| Exact third child build | STOPPED, `buildComplete=true`, no missing build |
+| Different key while the failed reservation was retained | 409 |
+| Recovery configuration | Submissions disabled; update Successful; full 30-second invocation drain |
+| Conditional operator lock recovery | LockReleased, FailureRecordPreserved and QuotaPreserved all true; admissions used 3; private audit saved |
 
-The live CodeBuild project reports `aws/codebuild/amazonlinux-x86_64-standard:6.0`,
-LINUX_CONTAINER, small compute, concurrency one and retries zero. The earlier
-runtime guard incorrectly expected `aws/codebuild/standard:7.0`, while its
-preflight did not check the image. This source change pins both guards to the
-actual managed image used by the successful builds. It adds regression cases
-for the observed project and for rejection of an image change by either guard.
-The existing project image is retained. A fresh cloud test/package build and
-verified Lambda code update are required for this correction; IAM policy,
-table and published workflow version can be reused. Submissions remain disabled
-until this package and real HTTP acceptance checks pass.
+The stop request against the second workflow did not establish cancellation:
+the later API/build responses were COMPLETED/SUCCEEDED. Only the third,
+automatically stopped execution establishes the controlled abort result.
+
+This checkpoint verifies submission, completed-status retrieval, completed-key
+idempotency, failed-reservation blocking, one controlled abort, its child
+termination and guarded manual lock recovery. It does not establish a new
+successful workload after recovery: all three admissions were consumed and the
+API was left disabled without resetting the counter. It also does not establish
+real HTTP 429 after lock release, in-flight HTTP race/load behavior, dependency/
+processing failure coverage, missing-output recovery, alarm delivery, measured
+billing, full infrastructure recreation or Terraform ownership. No new model
+training or live inference was performed.

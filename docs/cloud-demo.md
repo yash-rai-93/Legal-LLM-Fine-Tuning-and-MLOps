@@ -1,8 +1,12 @@
 # AWS CPU deployment: current stage
 
-This branch adds CPU preparation and supplied-prediction evaluation, plus
-manually deployed Step Functions orchestration of the verified CodeBuild job.
-It does not train a model, invoke SageMaker, or run MLRun.
+This branch deploys CPU preparation, supplied-prediction evaluation, verified
+S3 artifacts, run registration and an IAM submit/status/metadata API. The
+[submission and recovery checkpoint](cpu-submission-api.md#verified-cloud-evidence)
+records two completed API-submitted workflows and one controlled abort with
+child termination and conditional lock recovery. POST is currently disabled
+after the three-admission demo allowance was used; GET routes remain available.
+The CPU release does not train a model, invoke SageMaker, or run MLRun.
 The original GPU implementation and its historical results remain separate.
 
 ## Account constraints
@@ -27,7 +31,7 @@ Run the check in AWS CodeBuild, not on the laptop:
 | --- | --- |
 | Source | This GitHub repository, branch `feat/aws-cpu-deployment` |
 | Buildspec | `buildspecs/cpu-check.yml` |
-| Managed environment | Ubuntu 22.04, `aws/codebuild/standard:7.0`, Linux x86_64 |
+| Managed environment | Verified current image `aws/codebuild/amazonlinux-x86_64-standard:6.0`, Linux x86_64 |
 | Compute | On-demand `BUILD_GENERAL1_SMALL`, if permitted |
 | Privileged mode | Off |
 | Timeout | 15 minutes initially; investigate before increasing |
@@ -79,10 +83,9 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 ## Still pending
 
-- Additional failure/cancellation/orphan-job recovery and cleanup verification.
-- Bounded authenticated submission with admission control and idempotency;
-  running/failed run tracking and dataset/prompt endpoints.
-- Full dependency locking and dataset/prompt catalog integration with the API.
+- Additional failure modes, post-recovery workload execution and full resource cleanup/recreation.
+- Real in-flight HTTP race/load checks and HTTP 429 after quota exhaustion.
+- Full dependency locking; a deployed alarm/notification acceptance check.
 - Isolated Terraform ownership/import of the manually deployed CPU resources.
 - Live throttle/load tests and measured billing/credit consumption.
 - Integration of the pure transformation into the existing MLRun wrapper.
@@ -91,8 +94,10 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 
 Use the AWS CPU plan in `docs/aws-credit-deployment-plan.md` for the staged
 target. Do not run the original setup/deployment scripts as a substitute.
-The manual CPU workflow, automatic run registration and read-only IAM status
-API are operational; the complete management API remains a later stage.
+The CPU workflow, automatic run registration and IAM status/artifact APIs are
+operational. Bounded submission has passed its real submission, completed-key
+replay, controlled-abort and conditional-lock-recovery checks; it is currently
+disabled with its three-admission counter preserved.
 
 ## Next milestone: retain outputs in private S3
 
@@ -264,3 +269,26 @@ denominators. They are not full-held-out or newly generated model results.
 The encrypted report/attempt artifact versions and provenance limitations
 are recorded in [verified replay evidence](cpu-historical-evaluation.md#verified-aws-replay).
 The existing workflow, registry and status API were not updated.
+
+## Verified submission and abort recovery
+
+The final submission package at
+`e533237a61f7c49e09d69d1e0a7f3f7629378f79` passed its AWS cloud check and
+exact S3 ZIP/code-checksum verification. Both new routes use AWS_IAM:
+POST /runs and GET /submissions/{run_id}. The runtime checks the actual CPU
+project's source, image and limits and invokes only the reviewed published
+workflow version.
+
+Supplied CloudShell responses confirm two completed submissions and a third
+controlled ABORTED submission. Replaying the first completed key returned the
+existing result; a distinct key was rejected with 409 while the aborted
+reservation remained held. The aborted run's exact CodeBuild child was STOPPED
+and complete. An operator disabled POST, drained invocations and conditionally
+released only that submission's lock, preserving both its ABORTED record and
+the admission counter at three. The recovery read-back and private audit were
+confirmed by supplied output.
+
+See [deployment facts, real check results and remaining limits](cpu-submission-api.md#verified-cloud-evidence).
+These results establish guarded manual lock recovery; no new processing run
+was started afterward because the allowance was exhausted. Reads remain
+available, and model training/inference remain disabled.

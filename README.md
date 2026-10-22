@@ -33,7 +33,7 @@ registered COMPLETED run with the expected document counts. The [authenticated
 status API](docs/cpu-status-api.md) is deployed: signed requests returned HTTP 200
 with the expected counts and artifact versions, unsigned requests returned 403,
 and an unregistered run returned 404. Its test/package build succeeded in AWS.
-Submission and other management routes remain pending. The
+The
 [dataset/prompt catalog](docs/cpu-artifact-catalog.md#verified-cloud-evidence)
 also passed its AWS build (32 CPU and 28 cloud tests): the official train,
 validation and held-out test splits and canonical prompt/schema are registered
@@ -52,15 +52,22 @@ confirm HTTP 200 for datasets, prompts and the historical evaluation; the
 existing run-status route still returns 200 / COMPLETED. The account owner
 reported unsigned access returning 403 and an unknown evaluation returning 404.
 AWS-specific configuration stays private and pins the two S3 manifest versions
-and checksums. The [bounded submission API](docs/cpu-submission-api.md) is
-prepared for cloud tests and packaging, with durable duplicate protection,
-single-run admission and a three-admission demo allowance. Its runtime deployment
-and real failure/recovery checks remain pending.
+and checksums. The [bounded submission API](docs/cpu-submission-api.md#verified-cloud-evidence)
+is deployed and cloud-verified. Signed requests started two successful CPU
+preparation workflows and one controlled aborted workflow. A completed-key replay
+returned the existing result; a retained failure lock rejected a different key
+with HTTP 409. The aborted workflow's exact child build was confirmed STOPPED
+and complete, then an operator conditionally released its lock while preserving
+the failed record and three-admission counter. POST submissions are currently
+disabled after all three demo admissions were used; metadata/status reads remain
+available. Full failure coverage, measured usage and infrastructure recreation
+remain outside this verified checkpoint.
 
-This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
+This portfolio implementation includes historical experiment outputs and serving benchmarks. The original model stack requires configured AWS infrastructure and an accessible MLRun environment. The deployed CPU release uses Step Functions, CodeBuild, thin Lambdas, S3 and DynamoDB.
 
 | Area | Current state | Evidence |
 | --- | --- | --- |
+| AWS CPU release | Deployed; submission, completed-key replay, controlled abort and conditional lock recovery verified; POST currently disabled after three admissions | [Cloud evidence](docs/cpu-submission-api.md#verified-cloud-evidence), [operating guide](docs/cloud-demo.md) |
 | Data preparation and registration | Implemented in scripts and notebooks | [Dataset engineering](dataset_engineering/), [registration handler](src/register_raw_dataset.py) |
 | QLoRA training and evaluation | Implemented; training curves and reported metrics included | [Training workflow](src/evaluate_train.py), [experiment details](docs/training-and-evaluation.md) |
 | Model registry and deployment | Model/adapter deployment and registry status logic are present | [Model deployment](src/deploy_model.py), [adapter deployment](src/deploy_adapter.py), [registry helpers](src/utils_model_registry.py) |
@@ -154,6 +161,11 @@ Training uses 4-bit NF4 weights, BF16 computation, gradient checkpointing, and a
 
 ## Getting started
 
+For the deployed CPU release, use the [AWS CPU operating guide](docs/cloud-demo.md)
+and [submission/recovery guide](docs/cpu-submission-api.md). Tests and packaging
+run in CodeBuild, with administration in CloudShell. The prerequisites and setup
+below describe the original MLRun/model stack.
+
 ### Prerequisites
 
 - Python **3.11** for local orchestration/CI, matching the repository's CI configuration.
@@ -210,6 +222,8 @@ The [setup guide](docs/getting-started.md) explains current constraints. `setup/
 
 ## Documentation
 
+- [AWS CPU release and cloud evidence](docs/cloud-demo.md)
+- [Bounded submit/status API and recovery](docs/cpu-submission-api.md)
 - [Setup and workflow guide](docs/getting-started.md)
 - [Architecture, deployment, and observability](docs/architecture.md)
 - [Training, evaluation, and serving benchmarks](docs/training-and-evaluation.md)

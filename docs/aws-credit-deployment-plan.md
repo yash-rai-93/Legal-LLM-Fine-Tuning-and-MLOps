@@ -1,10 +1,10 @@
 # AWS-only deployment using existing credits
 
-Updated 22 October 2026. Reviewed source: `de13969e5624cfb3862762986c8197ca348924e2`.
+Updated 23 October 2026 (IST). Original audit source: `de13969e5624cfb3862762986c8197ca348924e2`. Verified deployed submission package: `e533237a61f7c49e09d69d1e0a7f3f7629378f79`.
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. The dataset/prompt catalog subsequently passed its AWS build, recovering and registering all three official splits and the canonical prompt in versioned S3. A historical prediction replay also succeeded after 84 tests, publishing versioned reports for the benchmark subset. Additional failure/recovery verification, catalog/evaluation API integration and the full submission API remain pending; billing review was skipped at the account owner's request. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. The dataset/prompt catalog subsequently passed its AWS build, recovering and registering all three official splits and the canonical prompt in versioned S3. A historical prediction replay also succeeded after 84 tests, publishing versioned reports for the benchmark subset. The catalog/evaluation metadata routes and bounded submit/status API have since been deployed. Real checks verified completed-key replay, an ABORTED execution with its exact child STOPPED/complete, retained-lock rejection and conditional manual lock release. The three-admission counter was preserved and POST left disabled. Broader failure coverage, a post-recovery processing run, infrastructure recreation and measured consumption remain unverified; billing review was skipped at the account owner's request. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 
@@ -276,17 +276,19 @@ Do not start by running old setup/build/deployment scripts or model notebooks: t
 ## 10. Acceptance and interview demonstration
 
 - [ ] Free/Paid state, credits, expiry and allowed services verified.
-- [ ] Administration works through the browser; no laptop execution dependency.
-- [ ] A clean AWS build passes CPU tests and produces deployable packages.
+- [x] Administration works through the browser; no laptop execution dependency.
+- [x] AWS builds pass the scoped CPU/cloud tests and produce verified deployable packages.
 - [ ] Saved infrastructure plan contains only the intended CPU resources.
-- [ ] Three datasets and prompt artifacts have reproducible versions/provenance.
-- [ ] An AWS workflow produces processed data, quality report and tracked run.
-- [ ] Hypotheses, schema and metric failure accounting are tested.
-- [ ] Prediction fixtures and authentic model outputs are clearly distinguished.
-- [ ] Authorized submit/status API works; unauthorized/repeated requests are bounded.
-- [ ] Operational failures are observable with no orphan builds.
+- [x] Three datasets and prompt artifacts have reproducible versions/provenance.
+- [x] An AWS workflow produces processed data, a verified manifest and a tracked run.
+- [x] Hypotheses, schema and metric failure accounting are tested.
+- [x] Prediction fixtures, historical outputs and new model execution are clearly distinguished.
+- [x] Authorized submit/status, unsigned rejection, completed-key replay and retained-failure-lock blocking are verified.
+- [x] A controlled abort is observable; its exact child is STOPPED/complete and conditional manual lock release is verified.
+- [ ] A fresh workload after lock recovery and all additional failure modes are verified.
+- [ ] Real in-flight HTTP race/load and exhausted-quota HTTP 429 checks are verified.
 - [ ] Consumption and cleanup/recreation have been verified.
-- [ ] Documentation labels live inference, training and MLRun as deferred.
+- [x] Documentation labels live inference, training and MLRun as deferred.
 
 Show one successful workflow, one rejected invalid dataset, the output manifest, an honestly labeled evaluation report and CloudWatch logs. This demonstrates cloud data/MLOps engineering; it does not establish that Hermes was trained or served by this environment.
 
@@ -310,9 +312,12 @@ passed the manual AWS build with 14 unit tests. Lambda/table deployment and
 independent real registration/idempotency checks also succeeded. The workflow
 registration update then passed AWS validation, deployment and an integrated
 smoke test (execution `56cbb5cc-6db7-4389-a908-58009740e135`). Its output
-records a new COMPLETED run with the expected counts. Additional runtime
-negative/failure checks, billing measurement and the full submission API remain pending.
-The read-only IAM status API is now deployed and passed real 200/403/404 checks.
+records a new COMPLETED run with the expected counts. The read-only IAM status
+API passed real 200/403/404 checks. The later bounded submit/status milestone
+also passed the specific submission and controlled-abort checks listed in the
+[latest checkpoint](#bounded-submission-and-operator-recovery-checkpoint).
+Additional failure modes, infrastructure recreation and billing measurement
+remain unverified.
 
 ## HTTP milestone and next stage
 
@@ -321,10 +326,11 @@ deployed with AWS_IAM and a read-only DynamoDB role. Its AWS CodeBuild
 check/package job succeeded from source `6113880be73a3caa8bb483473336e016c7d3fd3b`;
 real CloudShell HTTP checks returned 200 for a registered run, 403 without a
 signature and 404 for an unregistered UUID. See [deployment evidence](cpu-status-api.md#verified-deployment-evidence).
-The full submission API requires admission control/idempotency and remains a
-subsequent stage, along with dataset/prompt endpoints and running/failed run
-tracking. This staging preserves the existing verified CPU workflow and
-creates no automatic build trigger.
+The subsequent metadata stage added dataset/prompt/historical-evaluation
+lookups. The bounded submission stage now adds durable admission/idempotency
+and on-demand workflow status through separate routes and a submission table.
+It invokes the reviewed CPU workflow without a recurring trigger; POST is
+currently disabled after its three-admission acceptance allowance was used.
 
 ## Dataset/prompt implementation checkpoint
 
@@ -340,7 +346,8 @@ semantics and output hashes are preserved.
 
 This used the existing CodeBuild project and runs/* permissions as a one-build
 override. It did not change the live workflow's processor pin or the read-only
-status API. Dataset/prompt lookup through DynamoDB/API remains a later stage.
+status API. Dataset/prompt metadata lookup was subsequently deployed through
+version-pinned S3 manifest reads in the IAM artifact API.
 Billing review was skipped at the account owner's request.
 
 ## Historical evaluation implementation checkpoint
@@ -365,3 +372,26 @@ records the scores, artifact versions and model-provenance limitations.
 
 This is a separate finite S3-report job, without API/DynamoDB registration,
 new inference calls, added IAM permissions or deployed workflow changes.
+
+## Bounded submission and operator recovery checkpoint
+
+Recorded 23 October 2026 (IST) from account-owner-supplied AWS output. The
+[final submission package and operating guide](cpu-submission-api.md#verified-cloud-evidence)
+record a successful cloud test/package build at the deployed immutable commit,
+versioned ZIP/code verification, Active/Successful Lambda, the actual managed
+build image and limits, and the regional Lambda reservation limitation.
+
+Three distinct admissions were exercised: two successful CPU preparations and
+one controlled abort. The completed-key replay returned the original result;
+the retained failed reservation returned 409 for a different key. The aborted
+execution's exact child was STOPPED and complete. Following disabled POST and
+a full invocation drain, a conditional transaction released only the matching
+lock. Read-back preserved the ABORTED record and counter at three, and a private
+operator audit was saved.
+
+No allowance was reset or replacement workload started. POST remains disabled;
+GET routes remain available. This establishes the controlled abort and manual
+lock recovery, not a fresh post-recovery processing run, every failure mode,
+real racing HTTP rejection/load, actual HTTP 429 after lock release, alarm
+delivery, measured billing or full resource recreation/Terraform ownership.
+The original GPU/MLRun deployment remains outside this CPU release.
