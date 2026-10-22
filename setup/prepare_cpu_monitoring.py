@@ -67,6 +67,19 @@ def main():
 
     alarms = render("alarms.template.json")
     policy = render("sns-policy.template.json")
+    # SNS topic policies accept a narrower action set than IAM identity policies.
+    topic_actions = {
+        "sns:GetTopicAttributes", "sns:SetTopicAttributes", "sns:AddPermission",
+        "sns:RemovePermission", "sns:DeleteTopic", "sns:Subscribe",
+        "sns:ListSubscriptionsByTopic", "sns:Publish",
+    }
+    for statement in policy["Statement"]:
+        actions = statement.get("Action", [])
+        if isinstance(actions, str):
+            actions = [actions]
+        if (not actions or any(action not in topic_actions for action in actions)
+                or statement.get("Resource") != topic):
+            raise ValueError("SNS topic policy requires explicit supported actions on the exact topic")
     topics = aws_json("sns", "list-topics").get("Topics", [])
     topic_exists = any(item.get("TopicArn") == topic for item in topics)
     if topic_exists:

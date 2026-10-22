@@ -22,7 +22,11 @@ period and missing data treated as not breaching. Only ALARM transitions publish
 to the dedicated standard SNS topic `legal-llm-cpu-alerts`. There are no job
 start, recovery, Lambda, scaling, OK or insufficient-data actions. The SNS topic
 policy permits CloudWatch publish only from the three exact alarm ARNs in the
-same account. Account administration remains scoped to this topic.
+same account. Account administration uses an explicit list of supported SNS
+topic-policy actions on this topic. SNS topic policies do not accept the
+`sns:*` wildcard supplied in the first prepared revision. The first real
+CreateTopic attempt rejected that policy before the subscription call; topic,
+alarm deployment and delivery still require successful AWS verification.
 
 The workflow alarm uses the base ARN dimension, which covers executions started
 through the published version. No version-specific metric is added to the sum.
@@ -102,6 +106,7 @@ procedure; no cleanup has been executed.
 - [Step Functions metrics and dimensions](https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html)
 - [HTTP API metrics](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-metrics.html)
 - [Metric math alarms](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Create-alarm-on-metric-math-expression.html)
+- [Supported SNS topic-policy actions](https://docs.aws.amazon.com/sns/latest/dg/sns-access-policy-language-api-permissions-reference.html)
 - [Alarm notifications and SNS subscriptions](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Notify_Users_Alarm_Changes.html)
 - [Synthetic alarm-state testing](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_SetAlarmState.html)
 - [CloudWatch pricing](https://aws.amazon.com/cloudwatch/pricing/)
