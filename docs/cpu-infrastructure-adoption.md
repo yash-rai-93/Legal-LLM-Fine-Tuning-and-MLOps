@@ -146,6 +146,37 @@ generated HCL, provider locks and plan files. Keep provider downloads in an
 ephemeral data directory if CloudShell home space is limited, while retaining
 configuration, audit, lock file and any approved state durably.
 
+The first real preparation returned READY with 52 import targets across 20
+resource types, four verified Lambda packages and three external dependencies.
+Terraform was not installed in that CloudShell session. Configuration generation
+and the first plan have not run; no AWS resource or Terraform state changed.
+
+## Initialize the pinned planning toolchain
+
+Run the administrative helper against the workspace reported by preparation:
+
+```bash
+python3 setup/initialize_cpu_terraform.py --workspace-dir ACTUAL_PRIVATE_PLANNING_WORKSPACE
+```
+
+The helper downloads Terraform 1.16.6 for the current Linux architecture from
+the official HashiCorp release endpoint and verifies its archive against the
+release SHA256SUMS. This is an HTTPS checksum check, not an independent signature
+verification. It extracts only the Terraform executable into a private temporary
+directory and initializes the pinned AWS provider 6.67.0 and local planning
+backend. It never runs plan/import/apply or changes AWS resources.
+
+The binary and provider data live under /tmp to conserve CloudShell home space.
+The provider lock, initialization log and toolchain audit remain privately in
+the planning workspace. Temporary tool files can disappear when the session
+ends; retain the lock/configuration and re-establish the pinned tools before
+continuing in a new session. The helper refuses a recorded toolchain rather
+than silently rerunning a failed or completed initialization; inspect the
+private audit/log first. It requires the original scaffold and no state files.
+
+Initialization does not generate resource configuration, adopt state or establish
+a successful import-only plan. The first real initialization is pending.
+
 ### Lambda import nuance to resolve before the first adoption plan
 
 AWS reports deployed code hashes but not the original S3 source location during

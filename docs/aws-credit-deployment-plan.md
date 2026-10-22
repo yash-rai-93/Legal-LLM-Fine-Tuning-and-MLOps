@@ -445,9 +445,12 @@ changes. Only one saved local package manifest matched deployed code. A bounded
 read-only S3/producer-build recovery script subsequently verified all four
 exact deployed packages: six manifest candidates, four ZIPs and four successful
 producer builds, with no unmatched functions or rejected candidates. No AWS or
-Terraform state changed. A private import-map/toolchain preparation helper is
-now prepared; its first real run, generated resource configuration and the
-saved import-only plan remain pending.
+Terraform state changed. The private import preparation subsequently returned
+READY with 52 targets across 20 resource types, four verified packages and
+three external dependencies. Terraform was absent. A pinned toolchain
+initialization helper is now prepared, using temporary binary/provider storage
+and a private durable lock/audit. Its first run, generated resource configuration
+and the saved import-only plan remain pending.
 It does not import state, create a backend, apply Terraform, start processing
 or perform cleanup. Terraform/provider configuration, package-pin recovery,
 state-ownership review, a saved import-only plan, a subsequent no-change plan,
