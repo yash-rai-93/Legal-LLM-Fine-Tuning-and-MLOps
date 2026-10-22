@@ -53,9 +53,10 @@ stage; S3 publication is a later deployment milestone.
 Expected counts if the supplied data is unchanged: 423 train documents and
 61 validation documents, with 17 hypotheses per document. These expectations
 must be checked in the real AWS build, not assumed from earlier analysis.
-The official test split is currently ignored by Git. Its recovery and
-versioned registration are still pending. This check must not reuse
-validation data as the held-out test set.
+The official test split is ignored by Git. Recovery and versioned S3
+registration have since passed the separate catalog build recorded below.
+The initial CPU check did not include test data and must not reuse validation
+data as the held-out test set.
 
 ## Output formats
 
@@ -81,7 +82,7 @@ row-per-hypothesis Parquet files rather than silently accepting that format.
 - Additional failure/cancellation/orphan-job recovery and cleanup verification.
 - Bounded authenticated submission with admission control and idempotency;
   running/failed run tracking and dataset/prompt endpoints.
-- Reproducible held-out test acquisition, prompt registration and dependency locks.
+- Full dependency locking and dataset/prompt catalog integration with the API.
 - Isolated Terraform ownership/import of the manually deployed CPU resources.
 - Live throttle/load tests and measured billing/credit consumption.
 - Integration of the pure transformation into the existing MLRun wrapper.
@@ -195,8 +196,9 @@ DynamoDB. Lambda streaming checksum/provenance checks and the conditional
 registration were exercised against actual AWS resources. It demonstrates a
 CPU data workflow, not new model training/inference or model accuracy.
 Additional negative/failure/recovery checks, billing measurement, held-out
-split recovery, submission API and repeatable infrastructure remain pending.
-The read-only status API has since passed the verification recorded below.
+split recovery, submission API and repeatable infrastructure remained pending
+at that checkpoint. The read-only API and split/prompt catalog have since
+passed the verification recorded below.
 
 ## Provenance rejection and status API verification
 
@@ -219,12 +221,18 @@ versions), 403 for an unsigned request and 404 for a valid unregistered UUID.
 The GET route uses AWS_IAM; the default stage reports a rate of 1 request/second
 and burst 2. These reads do not start builds or perform inference.
 
-## Dataset/prompt catalog preparation
+## Successful dataset/prompt catalog
 
-The next [catalog stage](cpu-artifact-catalog.md) adds pinned official-source
-recovery, a canonical prompt/schema, all-split overlap/baseline checks and
-conditional versioned S3 publication. A manual catalog-check build will run
-32 CPU and 28 cloud tests before recovery/publication. These new checks and
-the real source download remain unverified until that build succeeds.
-The existing processor/workflow, run registry and status API remain unchanged.
-No additional AWS resource, GPU or model service is required.
+The [catalog stage](cpu-artifact-catalog.md#verified-cloud-evidence) passed in
+AWS build `legal-llm-cpu-check:51eed2ff-576e-4bf4-b1d1-47203f7092a8`
+from source `056f8a4269d12d1bf321660ab1e76466aa6fecd9`.
+It ran 32 CPU and 28 cloud tests, recovered the pinned official release,
+validated split overlap and baseline equivalence, then published and
+read-back-verified nine artifacts and the final S3 catalog.
+
+Supplied catalog output confirms train 423/7191 rows, validation 61/1037 and
+held-out test 123/2091, all four checks true, encrypted versioned artifacts and
+matching prompt identity/artifact digests. Registration is an S3 manifest,
+without a DynamoDB/API integration yet. The existing deployed workflow,
+registry and status API were not updated. No model was run. Billing review
+was skipped at the account owner's request; no consumption measurement is claimed.

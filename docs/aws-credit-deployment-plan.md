@@ -4,7 +4,7 @@ Updated 22 October 2026. Reviewed source: `de13969e5624cfb3862762986c8197ca34892
 
 This plan supersedes `deployment-plan.md` for the current deployment. Requirements: no local application, processing, tests, builds or orchestration; no account upgrade; no GPU resources; preserve the existing AWS credit balance. Editing this plan does not implement the fixes or provision resources.
 
-Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. Additional failure/recovery verification, billing measurement, held-out split recovery and the full submission API remain pending. The fix tables below describe the complete target, not a claim that every fix is implemented.
+Current milestone: [cloud-demo.md](cloud-demo.md) records the first AWS CPU check (15 tests passed; 423 training and 61 validation documents processed). The account owner confirmed the three private S3 outputs and supplied a matching manifest from commit `8a1df10`. Supplied AWS output also confirms successful definition validation and an end-to-end [Step Functions execution](cpu-workflow.md), including CodeBuild success and the new S3 prefix. The registry Lambda/table have now passed independent real registration and duplicate handling checks. Automated workflow registration also passed AWS validation/update and a real integrated smoke test. The read-only IAM status API also passed its cloud test/package build and real HTTP 200/403/404 checks. The dataset/prompt catalog subsequently passed its AWS build, recovering and registering all three official splits and the canonical prompt in versioned S3. Additional failure/recovery verification, catalog/API integration and the full submission API remain pending; billing review was skipped at the account owner's request. The fix tables below describe the complete target, not a claim that every fix is implemented.
 
 ## 1. What will actually be deployed
 
@@ -328,10 +328,17 @@ creates no automatic build trigger.
 
 ## Dataset/prompt implementation checkpoint
 
-Source for the next [S3 artifact catalog](cpu-artifact-catalog.md) is prepared
-on the CPU feature branch: official archive pinned by commit/blob identity,
-held-out split recovery, strict official/tracked baseline comparison, canonical
-prompt/schema and non-overwriting S3 publication. This is pending its AWS build.
-It uses the existing CodeBuild project and runs/* permissions as a one-build
-override. It does not change the live workflow's processor pin or the read-only
-status API. The catalog stage has no DynamoDB/API integration yet.
+The [S3 artifact catalog](cpu-artifact-catalog.md#verified-cloud-evidence)
+passed its AWS build from source `056f8a4269d12d1bf321660ab1e76466aa6fecd9`:
+build `legal-llm-cpu-check:51eed2ff-576e-4bf4-b1d1-47203f7092a8`
+reported SUCCEEDED / COMPLETED. Its 32 CPU and 28 cloud tests preceded pinned
+official-source recovery and non-overwriting, byte-verified S3 publication.
+Supplied catalog output confirms train 423/7191 rows, validation 61/1037,
+held-out test 123/2091 and all four validation markers true. Prompt identity
+matches its versioned artifact checksum. Original train/validation baseline
+semantics and output hashes are preserved.
+
+This used the existing CodeBuild project and runs/* permissions as a one-build
+override. It did not change the live workflow's processor pin or the read-only
+status API. Dataset/prompt lookup through DynamoDB/API remains a later stage.
+Billing review was skipped at the account owner's request.

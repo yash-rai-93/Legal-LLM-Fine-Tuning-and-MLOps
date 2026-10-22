@@ -1,9 +1,51 @@
-# Dataset and prompt catalog: source prepared, AWS verification pending
+# Dataset and prompt catalog: verified in AWS
 
 This manual CPU-only stage recovers the official held-out split and publishes
 an S3 catalog for train, validation, test and a canonical prompt/schema.
 No new AWS resources or permissions are required. Tests and processing run
 in AWS CodeBuild. CloudShell is used only for administration.
+
+## Verified cloud evidence
+
+Verified from account-owner-supplied AWS build status and catalog output on
+22 October 2026 (IST). No dataset processing or tests ran on the laptop.
+
+- Application source: `056f8a4269d12d1bf321660ab1e76466aa6fecd9`.
+- Build: `legal-llm-cpu-check:51eed2ff-576e-4bf4-b1d1-47203f7092a8`,
+  SUCCEEDED / COMPLETED, with the catalog-check override.
+- The build ran 32 CPU and 28 cloud tests before recovery/publication.
+- Catalog: `runs/51eed2ff-576e-4bf4-b1d1-47203f7092a8/catalog/catalog.json`
+  in the existing private bucket.
+- Created at (machine UTC): `2026-10-22T13:22:56.187571+00:00`.
+- Status: ARTIFACTS_VERIFIED; required build status: SUCCEEDED, confirmed separately.
+- Registration scope: versioned_s3_manifest; live_inference=false.
+- Upstream commit: `eced6528dd3c1d14d73f9a87df8f7bdbc03126f9`.
+- Archive SHA-256: `e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b`.
+
+| Split | Documents | Hypothesis rows |
+| --- | ---: | ---: |
+| Train | 423 | 7191 |
+| Validation | 61 | 1037 |
+| Held-out test | 123 | 2091 |
+
+All four preparation markers are true: expected counts, canonical hypotheses,
+split ID/exact-text disjointness, and tracked train/validation semantic match.
+Train/validation output hashes also match the earlier deployed processor.
+All nine catalog artifact references carry non-null S3 versions, AES256,
+positive byte sizes and SHA-256 checksums verified by the publication build.
+
+- Test output SHA-256: `ea4d22100296f8eb44025ddff99eb423cdff700954911aeef64d692f490def83`.
+- Test object version: `17oHva47lK5vvPGNkIjvCe8wbhV8LAfk`.
+- Prompt SHA-256: `3e62924801de6745550dc07360c8f90f9991af9e0a2d20cbc9a05bedec9459f1`.
+- Prompt object version: `Qxpiveh9kjnM86wr8lb3olk3yewFzz9E`.
+- The prompt identity digest equals the prompt artifact's digest; model_binding=null.
+
+This verifies source recovery, CPU checks and S3 artifact registration.
+It does not demonstrate model evaluation, prompt quality or new predictions.
+The catalog is not yet exposed through DynamoDB or the deployed status API.
+Full dependency locking, infrastructure ownership, operational recovery and
+catalog/API integration remain future work. Billing review was skipped at the
+account owner's request; no new consumption measurement is claimed.
 
 ## Dataset source and reproducibility
 
@@ -75,7 +117,7 @@ ambiguous ZIP members, pinned archive size/blob identity, all-split preparation,
 split leakage, baseline mismatches, deterministic prompt/schema, modified local
 outputs, wrong destinations, failed S3 read-back and repeated writes. Fake AWS
 clients are unit-test fixtures; real publication is checked separately by the
-same AWS build. These new tests have not yet run in AWS.
+same AWS build. The successful AWS build below ran these tests before real recovery/publication.
 
 ## Publication and completion rules
 

@@ -33,10 +33,13 @@ registered COMPLETED run with the expected document counts. The [authenticated
 status API](docs/cpu-status-api.md) is deployed: signed requests returned HTTP 200
 with the expected counts and artifact versions, unsigned requests returned 403,
 and an unregistered run returned 404. Its test/package build succeeded in AWS.
-Submission and other management routes remain pending. The next
-[dataset/prompt catalog stage](docs/cpu-artifact-catalog.md) has source and tests
-prepared for an AWS build; its official test-split recovery/publication has not
-yet been verified. Historical experiments are separate.
+Submission and other management routes remain pending. The
+[dataset/prompt catalog](docs/cpu-artifact-catalog.md#verified-cloud-evidence)
+also passed its AWS build (32 CPU and 28 cloud tests): the official train,
+validation and held-out test splits and canonical prompt/schema are registered
+in versioned private S3. Counts are 423/61/123 documents; all split/provenance
+checks passed. This catalog is not yet integrated with the API.
+Historical experiments are separate.
 
 This portfolio implementation includes experiment outputs and serving benchmarks. Running the platform requires configured AWS infrastructure and an accessible MLRun environment.
 
