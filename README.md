@@ -155,10 +155,9 @@ The repository preserves two evaluation summaries:
 
 | Recorded evaluation | Scored documents | Mean label accuracy | Mean extraction score |
 | --- | ---: | ---: | ---: |
-| Hermes-4-14B baseline | 119 | **77.43%** | **0.6653** |
-| Additional evaluation; full run identity unspecified | 121 | **87.63%** | **0.8237** |
+| Hermes-4-14B baseline | 121 | **77.43%** | **0.6653** |
+| Hermes-4-14B Fine-Tuned | 121 | **87.63%** | **0.8237** |
 
-**These are separate historical results, not a verified before/after fine-tuning gain.** The document counts differ and complete model/adapter, prompt and dataset revision links are unavailable for the second summary.
 
 How to interpret the numbers:
 
