@@ -12,7 +12,7 @@ A pipeline for analyzing non-disclosure agreements: read a contract, classify **
 
 The engineering focus is the full model lifecycle: fitting a 14B model and long contract inputs into GPU memory, retaining experiment artifacts, deploying base models and adapters separately, and measuring serving behavior under concurrent requests.
 
-**Explore:** [Results](#recorded-evaluation-results) · [Benchmarks](#gpu-serving-benchmarks) · [Architecture](#architecture) · [Training](#fine-tuning-and-memory-management) · [Setup](#setup-and-run) · [Documentation](#documentation)
+**Explore:** [Results](#recorded-evaluation-results) · [Benchmarks](#gpu-serving-benchmarks) · [Architecture](#architecture) · [Training](#fine-tuning-and-memory-management) · [Next iteration](#next-iteration-quality-latency-and-reliability) · [Setup](#setup-and-run) · [Documentation](#documentation)
 
 ## Project at a glance
 
@@ -168,6 +168,27 @@ How to interpret the numbers:
 
 The [evaluation report](docs/training-and-evaluation.md#reported-evaluation-results) retains the original values. [Metric definitions](<docs/model metrics.md>) explain the denominators and special cases.
 
+### Improvement and published benchmark context
+
+The recorded fine-tuned accuracy is **87.63%**, compared with **77.43%** for
+the baseline: a difference of **about 10.2 percentage points**. This is an encouraging
+recorded result; attributing the full difference to fine-tuning requires a
+paired evaluation on identical document IDs, with matching generation/scoring
+settings and explicit accounting for failed or excluded responses.
+
+For context, the original [ContractNLI paper, Table 3](https://aclanthology.org/2021.findings-emnlp.164.pdf#page=6)
+reports NLI accuracies of **83.8%** for Span NLI BERT-base, **87.5%** for
+Span NLI BERT-large and **88.5%** for its DeBERTa-v2-xlarge backbone.
+The project's **87.63% is numerically within this range of published baselines**.
+
+This comparison is context, not a leaderboard ranking or a claim of meeting an
+industry standard. The paper's published micro/macro NLI aggregation differs from this project's
+legacy score, which averages document-level label accuracy
+over successfully scored outputs. Evidence metrics also differ: the paper uses
+mAP/P@R80, while this project reports a ROUGE-3 aggregate. The next iteration will
+align the split, denominators and official scoring protocol before claiming
+benchmark parity or a controlled fine-tuning gain.
+
 ## GPU serving benchmarks
 
 The [benchmark directory](benchmark/) contains historical SageMaker serving load tests, prompt payloads and raw model responses. The runner uses `awscurl` to invoke an endpoint with an adapter inference component.
@@ -208,6 +229,39 @@ print(json.dumps(summary, indent=2))
 ```
 
 </details>
+
+## Next iteration: quality, latency and reliability
+
+The load tests exposed limitations in the tested serving configuration:
+increasing concurrency from four to seven coincided with higher latency,
+lower token throughput and more failed requests. They provide a starting point
+for capacity investigation, rather than a proven failure threshold or a
+confirmed diagnosis of GPU-memory exhaustion.
+
+The next iteration will address those findings in the following order.
+These are planned changes and acceptance checks, not optimizations already
+implemented or measured improvements.
+
+| Priority | Planned improvement | How it will be evaluated |
+| --- | --- | --- |
+| 1. Reproduce the quality comparison | Evaluate the base model and adapter on identical held-out document IDs; pin model/adapter revisions, prompt, source commit, container, quantization and generation settings. Reconcile scored-document counts against saved predictions. | Publish attempted/scored/invalid counts, paired document-level confidence intervals, and the ContractNLI NLI aggregation alongside the legacy score. |
+| 2. Strengthen output and evidence validation | Require all 17 unique approved hypothesis IDs, allowed labels and valid JSON; add exact source-span checks and separate evidence-only scoring from correct `not_mentioned` cases. | Report schema validity, completeness, per-class F1/confusion matrices and evidence-span validity. Retain invalid outputs in coverage/failure accounting. |
+| 3. Identify the serving bottleneck | Repeat load tests on a fixed instance/container and workload, including warmup and intermediate concurrency levels. Correlate request errors and queue/server timings with GPU utilization, memory, KV-cache usage and preemption/OOM logs. | Separate queue wait, time to first token, generation time and end-to-end latency. Collect enough observations for meaningful tail percentiles; distinguish timeout, context-limit, capacity and malformed-output failures. |
+| 4. Tune the existing vLLM engine | Test version-supported chunked prefill, batching/sequence limits, batched-token budgets, safe input-plus-output limits and prefix caching where compatible with the adapter/quantization configuration. Change one factor at a time. | Compare p50/p95/p99 latency, failure rate and output-token throughput on the same requests, while checking that extraction/classification quality is retained. |
+| 5. Add queued document processing | Evaluate a durable SQS-backed worker path or compatible SageMaker Asynchronous Inference deployment. Return a job ID promptly, retain results in S3, and provide status retrieval, bounded concurrency and idempotent retry handling. | Test backpressure, retry limits, dead-letter handling and recovery without duplicate document processing. Measure job completion time separately from submission latency; a queue does not make model generation faster. |
+| 6. Calibrate autoscaling and admission limits | Test inference-component scaling based on concurrent requests per copy, with measured targets, appropriate warm capacity, cooldowns and bounded replica counts. | Use sustained and burst tests to choose a capacity target that meets an agreed latency/error budget. Account for model-loading time; the present tests do not establish a safe threshold of three or four clients. |
+| 7. Measure quality versus cost | Compare suitable smaller models, adapter/quantization configurations and context/output budgets against the retained 14B baseline. | Report quality, GPU time and cost per successfully processed document, including retries and idle serving capacity. Select changes based on measured trade-offs. |
+| 8. Validate releases and recovery | Finish the configured MLRun CI target and required function builds, then test initial deployment, rollout completion, monitoring and registry reconciliation on failure. | Require an integration regression and controlled recovery evidence before enabling an automated model release. |
+
+The serving work builds on the **existing LMI/vLLM implementation**; introducing
+vLLM is not a future feature. The engine's asynchronous scheduling is also
+distinct from a SageMaker Asynchronous Inference endpoint or a durable job queue.
+
+Useful implementation references are the [vLLM optimization guide](https://docs.vllm.ai/en/v0.18.1/configuration/optimization/),
+[AWS concurrency-based target tracking](https://docs.aws.amazon.com/sagemaker/latest/dg/endpoint-auto-scaling-add-code-define.html)
+and [SageMaker inference options](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model-options.html).
+The aim is a reproducible quality comparison and a measured serving capacity
+under a defined workload, latency/error budget and cost limit.
 
 ## Serving, deployment and monitoring
 
